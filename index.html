@@ -1,840 +1,1584 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>WhatsApp Summary Master</title>
 <style>
-:root{--bg:#101726;--panel:#182235;--panel2:#121a29;--text:#e8edf7;--muted:#97a3b6;--border:#2c3850;--primary:#25d366;--secondary:#4a5568;--danger:#e53e3e;--warning:#ed8936;--purple:#9f7aea;--input:#0f1724;}
-[data-theme="light"]{--bg:#f4f7fb;--panel:#fff;--panel2:#f7f9fc;--text:#182235;--muted:#5c667a;--border:#d7dfeb;--primary:#25d366;--secondary:#64748b;--danger:#dc2626;--warning:#ea580c;--purple:#7c3aed;--input:#fff;}
-*{box-sizing:border-box;}
-body{margin:0;padding:16px;font-family:"Segoe UI",Tahoma,sans-serif;background:var(--bg);color:var(--text);}
-.container{max-width:1150px;margin:0 auto;}
-header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px;}
-h1{margin:0;font-size:1.5rem;color:var(--primary);}
-.theme-btn{border:1px solid var(--border);background:var(--panel);color:var(--text);padding:9px 14px;border-radius:10px;font-weight:700;cursor:pointer;}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px;}
-.stat{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;}
-.stat-num{font-size:1.55rem;font-weight:800;color:var(--primary);}
-.stat-label{color:var(--muted);font-size:12px;margin-top:4px;}
-.tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
-.tab{border:1px solid var(--border);background:var(--panel);color:var(--text);padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer;}
-.tab.active{background:var(--primary);color:#07140b;border-color:var(--primary);}
-.panel{display:none;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;}
-.panel.active{display:block;}
-.panel h2{margin-top:0;margin-bottom:8px;color:var(--primary);font-size:1.15rem;}
-.hint{color:var(--muted);font-size:13px;margin-bottom:12px;line-height:1.45;}
-textarea,input,select{width:100%;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13px;}
-textarea{min-height:240px;resize:vertical;font-family:"Courier New",monospace;line-height:1.45;}
-.btn{border:none;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;margin-right:8px;margin-bottom:8px;}
-.btn-primary{background:var(--primary);color:#07140b;}
-.btn-secondary{background:var(--secondary);color:#fff;}
-.btn-danger{background:var(--danger);color:#fff;}
-.btn-warning{background:var(--warning);color:#111;}
-.btn-sm{padding:7px 10px;font-size:12px;}
-.summary-box{margin-top:14px;background:#000;color:#fff;border-radius:12px;padding:16px;font-family:"Courier New",monospace;white-space:pre-wrap;word-break:break-word;max-height:650px;overflow-y:auto;line-height:1.4;border:1px solid #222;}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;}
-.alarm-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;padding:12px;background:var(--panel2);border:1px solid var(--border);border-radius:10px;}
-.alarm-controls label{color:var(--muted);font-size:12px;font-weight:700;margin-right:4px;}
-.alarm-controls select,.alarm-controls input{width:auto;min-width:160px;}
-.site-list{display:grid;gap:10px;}
-.site-item{border:1px solid var(--border);background:var(--panel2);border-left:4px solid var(--primary);border-radius:12px;padding:14px;}
-.site-item.blocked{border-left-color:var(--danger);}
-.site-item.access{border-left-color:var(--warning);}
-.site-item.temperature{border-left-color:#f59e0b;}
-.site-item.fiber{border-left-color:#06b6d4;}
-.site-item.transmission{border-left-color:#8b5cf6;}
-.site-item.old{border-left-color:var(--purple);}
-.site-head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
-.site-code{font-weight:800;color:var(--primary);}
-.badges{display:flex;gap:6px;flex-wrap:wrap;}
-.badge{font-size:11px;padding:4px 8px;border-radius:999px;background:var(--secondary);color:#fff;}
-.site-line{font-family:"Courier New",monospace;font-size:12px;color:var(--muted);white-space:pre-wrap;word-break:break-word;}
-.site-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.result-box{margin-top:12px;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:13px;max-height:260px;overflow-y:auto;}
-.result-added{color:var(--primary);}
-.result-updated{color:var(--warning);}
-.result-ignored{color:var(--muted);}
-.result-moved{color:var(--purple);}
-.result-removed{color:#f87171;}
-.result-alarm{color:#06b6d4;}
-.notif{position:fixed;top:18px;right:18px;background:var(--primary);color:#07140b;padding:12px 18px;border-radius:10px;font-weight:800;z-index:3000;box-shadow:0 8px 24px rgba(0,0,0,0.25);}
-.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:2500;justify-content:center;align-items:center;padding:14px;}
-.modal.active{display:flex;}
-.modal-box{width:min(700px,100%);background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;max-height:88vh;overflow-y:auto;}
-.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
-.close-btn{background:none;border:none;color:var(--text);font-size:24px;cursor:pointer;}
-.form-group{margin-bottom:12px;}
-.form-group label{display:block;margin-bottom:5px;color:var(--muted);font-size:12px;font-weight:700;}
-.empty{color:var(--muted);text-align:center;padding:20px;}
-@media(max-width:768px){.row{grid-template-columns:1fr;}.tabs{flex-direction:column;}.tab{width:100%;}.alarm-controls{flex-direction:column;}.alarm-controls select,.alarm-controls input{width:100%;}}
+:root{
+  --bg:#101726;--panel:#182235;--panel2:#121a29;--text:#e8edf7;--muted:#97a3b6;
+  --border:#2c3850;--primary:#25d366;--secondary:#4a5568;--danger:#e53e3e;
+  --warning:#ed8936;--purple:#9f7aea;--input:#0f1724;
+}
+[data-theme="light"]{
+  --bg:#f4f7fb;--panel:#fff;--panel2:#f7f9fc;--text:#182235;--muted:#5c667a;
+  --border:#d7dfeb;--primary:#25d366;--secondary:#64748b;--danger:#dc2626;
+  --warning:#ea580c;--purple:#7c3aed;--input:#fff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",Tahoma,sans-serif;background:var(--bg);color:var(--text);padding:16px}
+.container{max-width:1180px;margin:0 auto}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+h1{font-size:1.5rem;color:var(--primary)}
+.theme-btn{border:1px solid var(--border);background:var(--panel);color:var(--text);padding:9px 14px;border-radius:10px;font-weight:700;cursor:pointer}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px}
+.stat{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}
+.stat-num{font-size:1.55rem;font-weight:800;color:var(--primary)}
+.stat-label{color:var(--muted);font-size:12px;margin-top:4px}
+.tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.tab{border:1px solid var(--border);background:var(--panel);color:var(--text);padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer}
+.tab.active{background:var(--primary);color:#07140b;border-color:var(--primary)}
+.panel{display:none;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px}
+.panel.active{display:block}
+.panel h2{margin-bottom:8px;color:var(--primary);font-size:1.15rem}
+.hint{color:var(--muted);font-size:13px;margin-bottom:12px;line-height:1.45}
+textarea,input,select{width:100%;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13px}
+textarea{min-height:240px;resize:vertical;font-family:"Courier New",monospace;line-height:1.45}
+.btn{border:none;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;margin-right:8px;margin-bottom:8px}
+.btn-primary{background:var(--primary);color:#07140b}
+.btn-secondary{background:var(--secondary);color:#fff}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-warning{background:var(--warning);color:#111}
+.btn-sm{padding:7px 10px;font-size:12px}
+.summary-box{margin-top:14px;background:#000;color:#fff;border-radius:12px;padding:16px;font-family:"Courier New",monospace;white-space:pre-wrap;word-break:break-word;max-height:680px;overflow-y:auto;line-height:1.4;border:1px solid #222}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.alarm-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;padding:12px;background:var(--panel2);border:1px solid var(--border);border-radius:10px}
+.alarm-controls label{color:var(--muted);font-size:12px;font-weight:700;margin-right:4px}
+.alarm-controls select,.alarm-controls input{width:auto;min-width:180px}
+.site-list{display:grid;gap:10px}
+.site-item{border:1px solid var(--border);background:var(--panel2);border-left:4px solid var(--primary);border-radius:12px;padding:14px}
+.site-item.blocked{border-left-color:var(--danger)}
+.site-item.access{border-left-color:var(--warning)}
+.site-item.temperature{border-left-color:#f59e0b}
+.site-item.fiber{border-left-color:#06b6d4}
+.site-item.transmission{border-left-color:#8b5cf6}
+.site-item.dg{border-left-color:#f97316}
+.site-item.old{border-left-color:var(--purple)}
+.site-head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.site-code{font-weight:800;color:var(--primary)}
+.badges{display:flex;gap:6px;flex-wrap:wrap}
+.badge{font-size:11px;padding:4px 8px;border-radius:999px;background:var(--secondary);color:#fff}
+.site-line{font-family:"Courier New",monospace;font-size:12px;color:var(--muted);white-space:pre-wrap;word-break:break-word}
+.site-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.result-box{margin-top:12px;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:13px;max-height:360px;overflow-y:auto}
+.result-added{color:var(--primary)}
+.result-updated{color:var(--warning)}
+.result-ignored{color:var(--muted)}
+.result-moved{color:var(--purple)}
+.result-removed{color:#f87171}
+.result-alarm{color:#06b6d4}
+.pending-item{border:1px solid var(--border);padding:10px;border-radius:10px;margin-bottom:10px;background:var(--panel)}
+.pending-head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.pending-code{font-weight:700;color:var(--primary)}
+.pending-meta{font-size:12px;color:var(--muted);font-family:"Courier New",monospace;white-space:pre-wrap}
+.pending-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:8px}
+.notif{position:fixed;top:18px;right:18px;background:var(--primary);color:#07140b;padding:12px 18px;border-radius:10px;font-weight:800;z-index:3000;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:2500;justify-content:center;align-items:center;padding:14px}
+.modal.active{display:flex}
+.modal-box{width:min(760px,100%);background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;max-height:88vh;overflow-y:auto}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.close-btn{background:none;border:none;color:var(--text);font-size:24px;cursor:pointer}
+.form-group{margin-bottom:12px}
+.form-group label{display:block;margin-bottom:5px;color:var(--muted);font-size:12px;font-weight:700}
+.empty{color:var(--muted);text-align:center;padding:20px}
+@media(max-width:768px){
+  .row{grid-template-columns:1fr}
+  .tabs{flex-direction:column}
+  .tab{width:100%}
+  .alarm-controls{flex-direction:column}
+  .alarm-controls select,.alarm-controls input{width:100%}
+}
 </style>
 </head>
 <body data-theme="dark">
 <div class="container">
-<header>
-<h1>📱 WhatsApp Summary Master</h1>
-<button class="theme-btn" onclick="toggleTheme()">🌓 Theme</button>
-</header>
-<div class="stats">
-<div class="stat"><div class="stat-num" id="statDown">0</div><div class="stat-label">Daily Down</div></div>
-<div class="stat"><div class="stat-num" id="statBlocked">0</div><div class="stat-label">Blocked</div></div>
-<div class="stat"><div class="stat-num" id="statOld">0</div><div class="stat-label">Old Pending</div></div>
-<div class="stat"><div class="stat-num" id="statTotal">0</div><div class="stat-label">Total Lines</div></div>
-</div>
-<div class="tabs">
-<button class="tab active" onclick="openTab('summary',this)">📄 Update Summary</button>
-<button class="tab" onclick="openTab('oldsummary',this)">📥 Old Summary</button>
-<button class="tab" onclick="openTab('alarms',this)">⚡ New Alarms</button>
-<button class="tab" onclick="openTab('manage',this)">⚙️ Manage Sites</button>
-</div>
+  <header>
+    <h1>📱 WhatsApp Summary Master</h1>
+    <button class="theme-btn" onclick="toggleTheme()">🌓 Theme</button>
+  </header>
 
-<div class="panel active" id="summary">
-<h2>Update Summary</h2>
-<div class="toolbar">
-<button class="btn btn-primary" onclick="generateOutput()">🔄 Generate Summary</button>
-<button class="btn btn-secondary" onclick="copySummary()">📋 Copy Summary</button>
-</div>
-<div class="summary-box" id="summaryOutput">Click "Generate Summary" to view output.</div>
-</div>
+  <div class="stats">
+    <div class="stat"><div class="stat-num" id="statDown">0</div><div class="stat-label">Daily Down</div></div>
+    <div class="stat"><div class="stat-num" id="statBlocked">0</div><div class="stat-label">Blocked</div></div>
+    <div class="stat"><div class="stat-num" id="statOld">0</div><div class="stat-label">Old Pending</div></div>
+    <div class="stat"><div class="stat-num" id="statTotal">0</div><div class="stat-label">Total Lines</div></div>
+  </div>
 
-<div class="panel" id="oldsummary">
-<h2>Old Summary</h2>
-<div class="hint">Paste your previous WhatsApp summary exactly as it is. Nothing will be changed.</div>
-<textarea id="importText" placeholder="Paste your full old WhatsApp summary here..."></textarea>
-<button class="btn btn-primary" onclick="importSummary()">📥 Load Summary</button>
-<button class="btn btn-secondary" onclick="document.getElementById('importText').value=''">🗑️ Clear</button>
-<div id="importResult"></div>
-</div>
+  <div class="tabs">
+    <button class="tab active" onclick="openTab('summary',this)">📄 Update Summary</button>
+    <button class="tab" onclick="openTab('oldsummary',this)">📥 Old Summary</button>
+    <button class="tab" onclick="openTab('alarms',this)">⚡ New Alarms</button>
+    <button class="tab" onclick="openTab('manage',this)">⚙️ Manage Sites</button>
+  </div>
 
-<div class="panel" id="alarms">
-<h2>New Alarms</h2>
-<div class="hint">
-Paste new alarms, updates, or restore messages.<br>
-The app remembers alarms. When a site goes down, it checks the last alarm to auto-detect category.<br><br>
-<b>Examples:</b><br>
-*GAA036(DG)(1T)* High Temperature Over 37C<br>
-*GAA036(DG)(1T)* Site Down<br>
-*GAA695(MEW-Relay)(3TGAA765)* Rectifier AC Power Failure //Cells Blocking<br>
-*IKC0251* restored<br><br>
-<b>Update:</b><br>GAJ616<br>Site located in Mutlla...<br><br>
-<b>Access move:</b><br>GAJ616<br>Site located in KOC, ACCESS ISSUE.
-</div>
+  <div class="panel active" id="summary">
+    <h2>Update Summary</h2>
+    <div class="toolbar">
+      <button class="btn btn-primary" onclick="generateOutput()">🔄 Generate Summary</button>
+      <button class="btn btn-secondary" onclick="copySummary()">📋 Copy Summary</button>
+    </div>
+    <div class="summary-box" id="summaryOutput">Click "Generate Summary" to view output.</div>
+  </div>
 
-<div class="alarm-controls">
-<div>
-<label>Category Override:</label>
-<select id="alarmCategory">
-<option value="auto">🔍 Auto-detect</option>
-<option value="dg">DG Issues</option>
-<option value="power">Power Issues</option>
-<option value="temperature">Temperature Issues</option>
-<option value="thirdparty">3rd Party Issues</option>
-<option value="fiber">Fiber Issues</option>
-<option value="transmission">Transmission Issues</option>
-<option value="access">Access Issues</option>
-<option value="blocked">Blocked Sites</option>
-</select>
-</div>
-<div>
-<label>Date/Time:</label>
-<input type="datetime-local" id="alarmDateTime"/>
-</div>
-</div>
+  <div class="panel" id="oldsummary">
+    <h2>Old Summary</h2>
+    <div class="hint">Paste your previous WhatsApp summary exactly as it is. If you do not change anything, the app keeps it exactly the same.</div>
+    <textarea id="importText" placeholder="Paste your full old WhatsApp summary here..."></textarea>
+    <button class="btn btn-primary" onclick="importSummary()">📥 Load Summary</button>
+    <button class="btn btn-secondary" onclick="document.getElementById('importText').value=''">🗑️ Clear</button>
+    <div id="importResult"></div>
+  </div>
 
-<textarea id="alarmText" placeholder="Paste new alarms or updates here..."></textarea>
-<div style="margin-top:8px;">
-<button class="btn btn-primary" onclick="processNewAlarms()">⚡ Process</button>
-<button class="btn btn-secondary" onclick="document.getElementById('alarmText').value=''">🗑️ Clear</button>
-</div>
-<div id="alarmResult"></div>
-</div>
+  <div class="panel" id="alarms">
+    <h2>New Alarms</h2>
+    <div class="hint">
+      Process supports: down, direct down, hub down, blocked, restore, cleared unblocked, comment updates, access updates, remembered alarms.<br>
+      After pressing <b>Process</b>, you can edit each detected site's time individually before applying.
+    </div>
 
-<div class="panel" id="manage">
-<h2>Manage Sites</h2>
-<div class="toolbar">
-<select id="filterSection" onchange="renderSites()" style="max-width:180px;">
-<option value="all">All Sections</option>
-<option value="daily">Daily Only</option>
-<option value="old">Old Pending Only</option>
-</select>
-<button class="btn btn-danger" onclick="clearAll()">🗑️ Reset All</button>
-</div>
-<div class="site-list" id="siteList"></div>
-</div>
+    <div class="alarm-controls">
+      <div>
+        <label>Category Override:</label>
+        <select id="alarmCategory">
+          <option value="auto">🔍 Auto-detect</option>
+          <option value="dg">DG Issues</option>
+          <option value="power">Power Issues</option>
+          <option value="temperature">Temperature Issues</option>
+          <option value="thirdparty">3rd Party Issues</option>
+          <option value="fiber">Fiber Issues</option>
+          <option value="transmission">Transmission Issues</option>
+          <option value="access">Access Issues</option>
+          <option value="blocked">Blocked Sites</option>
+        </select>
+      </div>
+      <div>
+        <label>Default Date/Time:</label>
+        <input type="datetime-local" id="alarmDateTime"/>
+      </div>
+    </div>
+
+    <textarea id="alarmText" placeholder="Paste alarms or updates here..."></textarea>
+    <div style="margin-top:8px;">
+      <button class="btn btn-primary" onclick="preparePendingActions()">⚡ Process</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('alarmText').value=''">🗑️ Clear</button>
+    </div>
+    <div id="alarmResult"></div>
+  </div>
+
+  <div class="panel" id="manage">
+    <h2>Manage Sites</h2>
+    <div class="toolbar">
+      <select id="filterSection" onchange="renderSites()" style="max-width:180px;">
+        <option value="all">All Sections</option>
+        <option value="daily">Daily Only</option>
+        <option value="old">Old Pending Only</option>
+      </select>
+      <button class="btn btn-danger" onclick="clearAll()">🗑️ Reset All</button>
+    </div>
+    <div class="site-list" id="siteList"></div>
+  </div>
 </div>
 
 <div class="modal" id="editModal">
-<div class="modal-box">
-<div class="modal-head">
-<h3 id="editTitle" style="margin:0;color:var(--primary);">Edit Site</h3>
-<button class="close-btn" onclick="closeModal()">&times;</button>
-</div>
-<div class="row">
-<div class="form-group"><label>Section</label>
-<select id="editSection"><option value="daily">Daily</option><option value="old">Old Pending</option></select>
-</div>
-<div class="form-group"><label>Category</label>
-<select id="editCategory">
-<option value="dg">DG Issues</option>
-<option value="power">Power Issues</option>
-<option value="temperature">Temperature Issues</option>
-<option value="thirdparty">3rd Party Issues</option>
-<option value="fiber">Fiber Issues</option>
-<option value="transmission">Transmission Issues</option>
-<option value="access">Access Issues</option>
-<option value="blocked">Blocked Sites</option>
-<option value="special">Temp Dismantling / Relocation / Renovation / Vandalism</option>
-</select>
-</div>
-</div>
-<div class="form-group"><label>Full line (edit directly)</label>
-<textarea id="editLine" style="min-height:150px;"></textarea>
-</div>
-<button class="btn btn-primary" onclick="saveEdit()">💾 Save</button>
-<button class="btn btn-warning" onclick="moveCurrentToAccess()">🚪 Move to Access</button>
-<button class="btn btn-danger" onclick="restoreCurrent()">✅ Restore</button>
-</div>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="editTitle" style="margin:0;color:var(--primary);">Edit Site</h3>
+      <button class="close-btn" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="row">
+      <div class="form-group">
+        <label>Section</label>
+        <select id="editSection">
+          <option value="daily">Daily</option>
+          <option value="old">Old Pending</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select id="editCategory">
+          <option value="dg">DG Issues</option>
+          <option value="power">Power Issues</option>
+          <option value="temperature">Temperature Issues</option>
+          <option value="thirdparty">3rd Party Issues</option>
+          <option value="fiber">Fiber Issues</option>
+          <option value="transmission">Transmission Issues</option>
+          <option value="access">Access Issues</option>
+          <option value="blocked">Blocked Sites</option>
+          <option value="special">Temp Dismantling / Relocation / Renovation / Vandalism</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Full line (edit directly)</label>
+      <textarea id="editLine" style="min-height:150px;"></textarea>
+    </div>
+    <button class="btn btn-primary" onclick="saveEdit()">💾 Save</button>
+    <button class="btn btn-warning" onclick="moveCurrentToAccess()">🚪 Move to Access</button>
+    <button class="btn btn-danger" onclick="restoreCurrent()">✅ Restore</button>
+  </div>
 </div>
 
 <script>
-const SK="wa_summary_master_v6";
+const STORAGE_KEY = "wa_summary_master_v10";
+const ALARM_MEM_KEY = STORAGE_KEY + "_alarmMem";
+const FLAP_MEM_KEY = STORAGE_KEY + "_flapMem";
 
-const POWER_ALARMS=[
-"Commercial Power Failure",
-"Mains Input Out of Range",
-"AC Mains Power Failure",
-"Incoming Mains Voltage Out of Range",
-"Hybrid DG Abnormal",
-"Rectifier AC Power Failure",
-"Rectifier DC Voltage Low",
-"Rectifier DC Low Voltage"
+const POWER_ALARMS = [
+  "Commercial Power Failure",
+  "Mains Input Out of Range",
+  "AC Mains Power Failure",
+  "Incoming Mains Voltage Out of Range",
+  "Hybrid DG Abnormal",
+  "Rectifier AC Power Failure",
+  "Rectifier DC Voltage Low",
+  "Rectifier DC Low Voltage"
 ];
 
-const TEMP_ALARMS=[
-"High Temperature Over 37C",
-"Cabinet Air Inlet Temperature Unacceptable",
-"Board Temperature unacceptable",
-"Ambient Temperature"
+const TEMP_ALARMS_FIXED = [
+  "Cabinet Air Inlet Temperature Unacceptable",
+  "Board Temperature unacceptable",
+  "Ambient Temperature"
 ];
 
-// Priority order for daily categories
-const DAILY_CAT_ORDER=["dg","power","temperature","thirdparty","fiber","transmission","access","blocked"];
+const DAILY_CAT_ORDER = ["dg","power","temperature","thirdparty","fiber","transmission","access","blocked"];
+const OLD_CAT_ORDER = ["power","access","thirdparty","dg","temperature","fiber","transmission","special"];
 
-let state=loadSt();
-let editingId=null;
-// Temporary alarm memory: code -> {alarmText, timestamp}
-let alarmMemory=JSON.parse(localStorage.getItem(SK+"_alarms")||"{}");
+let state = loadState();
+let alarmMem = JSON.parse(localStorage.getItem(ALARM_MEM_KEY) || "{}");
+let flapMem = JSON.parse(localStorage.getItem(FLAP_MEM_KEY) || "{}");
+let editingId = null;
+let pendingActions = [];
 
-function loadSt(){try{return{sites:[],dirty:false,theme:"dark",...JSON.parse(localStorage.getItem(SK)||"{}")};}catch(e){return{sites:[],dirty:false,theme:"dark"};}}
-function saveSt(){localStorage.setItem(SK,JSON.stringify(state));localStorage.setItem(SK+"_alarms",JSON.stringify(alarmMemory));updateStats();}
+function loadState() {
+  try {
+    return {
+      sites: [],
+      importedRawText: "",
+      dirty: false,
+      theme: "dark",
+      ...JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}")
+    };
+  } catch {
+    return { sites: [], importedRawText: "", dirty: false, theme: "dark" };
+  }
+}
 
-document.addEventListener("DOMContentLoaded",()=>{
-document.body.setAttribute("data-theme",state.theme||"dark");
-setDefaultDateTime();
-updateStats();
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  localStorage.setItem(ALARM_MEM_KEY, JSON.stringify(alarmMem));
+  localStorage.setItem(FLAP_MEM_KEY, JSON.stringify(flapMem));
+  updateStats();
+}
+
+function notify(msg) {
+  const n = document.createElement("div");
+  n.className = "notif";
+  n.textContent = msg;
+  document.body.appendChild(n);
+  setTimeout(() => n.remove(), 2500);
+}
+
+function pad(n) { return String(n).padStart(2, "0"); }
+function uc(s) { return (s || "").toUpperCase(); }
+function makeId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+function escapeHtml(str){return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+
+function categoryLabel(cat) {
+  return {
+    dg:"DG Issues",
+    power:"Power Issues",
+    temperature:"Temperature Issues",
+    thirdparty:"3rd Party Issues",
+    fiber:"Fiber Issues",
+    transmission:"Transmission Issues",
+    access:"Access Issues",
+    blocked:"Blocked Sites",
+    special:"Temporary Dismantling/Under Relocation/Under Renovation/Under Dismantling/Under Vandalism"
+  }[cat] || cat;
+}
+
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+function cleanFlapMemory() {
+  const today = todayKey();
+  const clean = {};
+  for (const key in flapMem) {
+    if (flapMem[key].date === today) clean[key] = flapMem[key];
+  }
+  flapMem = clean;
+}
+
+function toggleTheme() {
+  state.theme = state.theme === "dark" ? "light" : "dark";
+  document.body.setAttribute("data-theme", state.theme);
+  saveState();
+}
+
+function setDefaultDateTime() {
+  const n = new Date();
+  document.getElementById("alarmDateTime").value =
+    new Date(n.getTime() - n.getTimezoneOffset()*60000).toISOString().slice(0, 16);
+}
+
+function openTab(id, btn) {
+  document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  btn.classList.add("active");
+  if (id === "manage") renderSites();
+  if (id === "summary") generateOutput();
+  if (id === "alarms") setDefaultDateTime();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.body.setAttribute("data-theme", state.theme || "dark");
+  cleanFlapMemory();
+  setDefaultDateTime();
+  updateStats();
 });
 
-function setDefaultDateTime(){
-const now=new Date();
-const local=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,16);
-document.getElementById("alarmDateTime").value=local;
+// ============================
+// DATE / TIME HELPERS
+// ============================
+
+function localInputToDisplay(v) {
+  if (!v) return nowDisplayDateTime();
+  const d = new Date(v);
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function toggleTheme(){state.theme=state.theme==="dark"?"light":"dark";document.body.setAttribute("data-theme",state.theme);saveSt();}
-
-function openTab(id,btn){
-document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
-document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-document.getElementById(id).classList.add("active");
-btn.classList.add("active");
-if(id==="manage")renderSites();
-if(id==="summary")generateOutput();
-if(id==="alarms")setDefaultDateTime();
+function displayToLocalInput(dt) {
+  const m = dt && dt.match(/(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})/);
+  if (!m) return "";
+  return `${m[1]}T${m[2]}`;
 }
 
-function notify(msg){const n=document.createElement("div");n.className="notif";n.textContent=msg;document.body.appendChild(n);setTimeout(()=>n.remove(),2500);}
-function pad(n){return String(n).padStart(2,"0");}
-function makeId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
-function escHtml(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
-
-function catLabel(c){return{
-dg:"DG Issues",power:"Power Issues",temperature:"Temperature Issues",
-thirdparty:"3rd Party Issues",fiber:"Fiber Issues",transmission:"Transmission Issues",
-access:"Access Issues",blocked:"Blocked Sites",
-special:"Temporary Dismantling/Under Relocation/Under Renovation/Under Dismantling/Under Vandalism"
-}[c]||c;}
-
-function countSectors(line){
-const m=line.match(/\*?([A-Z]{2,4}\d{2,4})([A-Z](?:\/[A-Z])*)/i);
-if(m&&m[2]){return m[2].split("/").length;}
-return 1;
+function nowDisplayDateTime() {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function countTerminals(line){
-const matches=[...line.matchAll(/\(([^)]*)\)/g)].map(m=>m[1]);
-for(const content of matches){
-const m=content.match(/(\d+)T/i);
-if(m)return parseInt(m[1],10);
-}
-return 0;
+function extractDateTimeFromLine(line) {
+  const m = line.match(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2})/);
+  return m ? m[1] : "";
 }
 
-function countContribution(site){
-const sectors=countSectors(site.originalLine);
-if(site.category==="blocked")return sectors;
-return sectors+countTerminals(site.originalLine);
+function extractTimestampFromLine(line) {
+  const dt = extractDateTimeFromLine(line);
+  if (!dt) return 0;
+  const t = new Date(dt.replace(" ", "T")).getTime();
+  return Number.isNaN(t) ? 0 : t;
 }
 
-function groupCount(items){return items.reduce((s,i)=>s+countContribution(i),0);}
+// ============================
+// COUNTING
+// ============================
 
-function sortGroup(items){
-return items.slice().sort((a,b)=>{
-const ap=a.pinTime||0,bp=b.pinTime||0;
-if(ap!==bp)return bp-ap;
-return(a.importOrder||0)-(b.importOrder||0);
+function countSectors(line) {
+  const m = line.match(/\*?([A-Z]{2,4}\d{2,4})([A-Z](?:\/[A-Z])*)/i);
+  if (m && m[2]) return m[2].split("/").length;
+  return 1;
+}
+
+function countTerminals(line) {
+  const parens = [...line.matchAll(/\(([^)]*)\)/g)].map(m => m[1]);
+  for (const content of parens) {
+    const m = content.match(/(\d+)T/i);
+    if (m) return parseInt(m[1], 10);
+  }
+  return 0;
+}
+
+function extractTerminalCodes(line) {
+  const parens = [...line.matchAll(/\(([^)]*)\)/g)].map(m => m[1]);
+  for (const content of parens) {
+    const m = content.match(/\d+T[_]?(.*)/i);
+    if (m && m[1]) {
+      return m[1]
+        .split(",")
+        .map(s => uc(s.trim()))
+        .filter(s =>
+          s &&
+          !/^\d/.test(s) &&
+          s !== "OH" &&
+          s !== "4G" &&
+          s !== "3G" &&
+          s !== "2G" &&
+          s !== "VIP"
+        );
+    }
+  }
+  return [];
+}
+
+function countContribution(site, sameCategoryItems) {
+  const sectors = countSectors(site.originalLine);
+
+  // Blocked => count sectors only, not terminals
+  if (site.category === "blocked") return sectors;
+
+  const terminals = countTerminals(site.originalLine);
+  const termCodes = extractTerminalCodes(site.originalLine);
+
+  // Do not double count terminals that already exist as separate entries
+  let duplicates = 0;
+  for (const code of termCodes) {
+    const exists = sameCategoryItems.find(s =>
+      s.id !== site.id &&
+      uc(s.code) === uc(code) &&
+      s.section === site.section &&
+      s.category === site.category
+    );
+    if (exists) duplicates++;
+  }
+
+  return sectors + Math.max(0, terminals - duplicates);
+}
+
+function groupCount(items) {
+  return items.reduce((sum, s) => sum + countContribution(s, items), 0);
+}
+
+// ============================
+// SORTING
+// ============================
+
+function sortItems(items) {
+  return items.slice().sort((a, b) => {
+    const at = extractTimestampFromLine(a.originalLine);
+    const bt = extractTimestampFromLine(b.originalLine);
+    if (at !== bt) return bt - at; // newest first by real line time
+    const ap = a.pinTime || 0;
+    const bp = b.pinTime || 0;
+    if (ap !== bp) return bp - ap;
+    return (a.importOrder || 0) - (b.importOrder || 0);
+  });
+}
+
+// ============================
+// TAG / LINE PARSING
+// ============================
+
+function extractSiteCode(line) {
+  let t = line.trim();
+  if (t.startsWith("*")) t = t.slice(1);
+  const m = t.match(/^([^\s(*]+)/);
+  return m ? uc(m[1].replace(/\*+$/, "")) : "";
+}
+
+function parseTag(tagPart) {
+  const code = extractSiteCode(tagPart);
+  const parts = [...tagPart.matchAll(/\(([^)]*)\)/g)].map(m => m[1]);
+
+  let power = "";
+  let terminals = "";
+  let order = "power-first";
+
+  if (parts.length === 1) {
+    if (/^\d+T/i.test(parts[0])) {
+      terminals = parts[0];
+      order = "term-first";
+    } else {
+      power = parts[0];
+      order = "power-first";
+    }
+  } else if (parts.length >= 2) {
+    if (/^\d+T/i.test(parts[0]) && !/^\d+T/i.test(parts[1])) {
+      terminals = parts[0];
+      power = parts[1];
+      order = "term-first";
+    } else {
+      power = parts[0];
+      terminals = parts[1];
+      order = "power-first";
+    }
+  }
+
+  return { code, power, terminals, order };
+}
+
+function buildTag({ code, power, terminals, order }) {
+  let t = uc(code);
+  if (order === "term-first" && terminals && power) {
+    t += `(${terminals})(${power})`;
+  } else if (order === "term-first" && terminals && !power) {
+    t += `(${terminals})`;
+  } else if (power && terminals) {
+    t += `(${power})(${terminals})`;
+  } else if (power) {
+    t += `(${power})`;
+  } else if (terminals) {
+    t += `(${terminals})`;
+  }
+  return t;
+}
+
+function extractLineMeta(line, category) {
+  const dt = extractDateTimeFromLine(line);
+  const idx = dt ? line.indexOf(dt) : -1;
+
+  const tagPart = idx > -1 ? line.slice(0, idx).trim() : line.trim();
+  const tagMeta = parseTag(tagPart);
+
+  let tt = "";
+  let alarm = "";
+  let comment = "";
+  let after = idx > -1 ? line.slice(idx + dt.length).trim() : "";
+
+  if (after.startsWith("-")) after = after.slice(1).trim();
+
+  // TT
+  let rest = after;
+  let m = after.match(/^(\*\*|\*[^*]+\*|TT-[A-Z0-9-]+(?:\s*-\s*Manual TT)?)\s*-\s*(.*)$/i);
+  if (!m) m = after.match(/^(\*\*|\*[^*]+\*|TT-[A-Z0-9-]+(?:\s*-\s*Manual TT)?)\s+(.*)$/i);
+  if (m) {
+    tt = m[1];
+    rest = m[2];
+  }
+
+  if (category === "blocked") {
+    const parts = rest.split(" - ");
+    if (parts.length >= 2) {
+      alarm = parts[0].trim();
+      comment = parts.slice(1).join(" - ").trim();
+    } else {
+      comment = rest.trim();
+    }
+  } else {
+    comment = rest.trim();
+  }
+
+  return {
+    code: tagMeta.code,
+    power: tagMeta.power,
+    terminals: tagMeta.terminals,
+    order: tagMeta.order,
+    dateTime: dt,
+    tt,
+    alarm,
+    comment
+  };
+}
+
+function buildLine(meta, category) {
+  const tag = `*${buildTag(meta)}*`;
+  let line = tag;
+
+  if (meta.dateTime) line += ` ${meta.dateTime}`;
+
+  if (meta.tt) line += ` - ${meta.tt}`;
+  else if (category !== "special") line += ` - **`;
+
+  if (category === "blocked") {
+    line += ` - ${meta.alarm || ""} - ${meta.comment || ""}`;
+  } else {
+    line += ` - ${meta.comment || ""}`;
+  }
+
+  return line.replace(/\s+-\s+$/, "").trim();
+}
+
+// ============================
+// HEADER DETECTION
+// ============================
+
+function isHeaderOrSeparator(line) {
+  const t = line.trim();
+  if (!t) return true;
+  if (/^[-]{3,}$/.test(t)) return true;
+
+  if (/^\*?Daily Sites Down\/Blocked/i.test(t)) return true;
+  if (/^\*?Old Pending Sites Down/i.test(t)) return true;
+
+  if (/^(\*?)Power\s*[Ii]ssues?:\s*\d/i.test(t)) return true;
+  if (/^(\*?)Access\s*[Ii]ssues?:\s*\d/i.test(t)) return true;
+  if (/^(\*?)DG\s*[Ii]ssues?:\s*\d/i.test(t)) return true;
+  if (/^(\*?)3rd\s*Party\s*[Ii]ssues?:\s*\d/i.test(t)) return true;
+  if (/^(\*?)Blocked\s*Sites?\s*:?\s*\d/i.test(t)) return true;
+  if (/^(\*?)Temperature\s*[Ii]ssues?:\s*\d/i.test(t)) return true;
+  if (/^(\*?)Fiber\s*[Ii]ssues?:\s*\d/i.test(t)) return true;
+  if (/^(\*?)Transmission\s*[Ii]ssues?:\s*\d/i.test(t)) return true;
+
+  // STRICT special header only
+  if (/^\*?Temporary Dismantling\/Under Relocation\/Under Renovation\/Under Dismantling\/Under Vandalism:\s*\d+\*?$/i.test(t)) return true;
+
+  return false;
+}
+
+// ============================
+// IMPORT
+// ============================
+
+function importSummary() {
+  const text = document.getElementById("importText").value;
+  if (!text.trim()) { notify("Paste summary first."); return; }
+
+  const lines = text.split("\n");
+  const imported = [];
+  let section = "daily";
+  let category = "power";
+  const orderCounters = {};
+
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    if (!line.trim()) continue;
+
+    if (/Daily Sites Down\/Blocked/i.test(line)) { section = "daily"; continue; }
+    if (/Old Pending Sites Down/i.test(line)) { section = "old"; continue; }
+
+    if (/^(\*?)DG\s*[Ii]ssues?:/i.test(line.trim())) { category = "dg"; continue; }
+    if (/^(\*?)Power\s*[Ii]ssues?:/i.test(line.trim())) { category = "power"; continue; }
+    if (/^(\*?)Temperature\s*[Ii]ssues?:/i.test(line.trim())) { category = "temperature"; continue; }
+    if (/^(\*?)3rd\s*Party\s*[Ii]ssues?:/i.test(line.trim())) { category = "thirdparty"; continue; }
+    if (/^(\*?)Fiber\s*[Ii]ssues?:/i.test(line.trim())) { category = "fiber"; continue; }
+    if (/^(\*?)Transmission\s*[Ii]ssues?:/i.test(line.trim())) { category = "transmission"; continue; }
+    if (/^(\*?)Access\s*[Ii]ssues?:/i.test(line.trim())) { category = "access"; continue; }
+    if (/^(\*?)Blocked\s*Sites?\s*:?\s*\d/i.test(line.trim())) { category = "blocked"; continue; }
+    if (/^\*?Temporary Dismantling\/Under Relocation\/Under Renovation\/Under Dismantling\/Under Vandalism:\s*\d+\*?$/i.test(line.trim())) { category = "special"; continue; }
+
+    if (isHeaderOrSeparator(line)) continue;
+
+    const code = extractSiteCode(line);
+    if (!code) continue;
+
+    const key = section + "_" + category;
+    if (!orderCounters[key]) orderCounters[key] = 0;
+
+    imported.push({
+      id: makeId(),
+      code,
+      originalLine: line,
+      section,
+      category,
+      importOrder: orderCounters[key]++,
+      pinTime: 0
+    });
+  }
+
+  state.sites = imported;
+  state.importedRawText = text;
+  state.dirty = false;
+  saveState();
+
+  document.getElementById("importResult").innerHTML =
+    `<div class="result-box"><div class="result-added">✅ Imported ${imported.length} lines.</div></div>`;
+  renderSites();
+  notify("Summary imported.");
+}
+
+// ============================
+// ALARM DETECTION
+// ============================
+
+function isPowerAlarm(text) {
+  const t = (text || "").toLowerCase();
+  return POWER_ALARMS.some(a => t.includes(a.toLowerCase()));
+}
+
+function isTempAlarm(text) {
+  const t = (text || "").toLowerCase();
+  if (/high temperature over\s*\d+\s*c/i.test(text || "")) return true;
+  return TEMP_ALARMS_FIXED.some(a => t.includes(a.toLowerCase()));
+}
+
+function detectCategoryFromAlarm(alarmText, powerType, isDirect) {
+  const p = uc(powerType);
+
+  if (p.includes("DG")) {
+    if (isDirect) return "dg";
+    if (isTempAlarm(alarmText)) return "temperature";
+    return "dg";
+  }
+
+  if (p.includes("SHARED")) return "thirdparty";
+  if (isTempAlarm(alarmText)) return "temperature";
+  if (isPowerAlarm(alarmText)) return "power";
+  return "power";
+}
+
+function detectCategoryFromMemory(code, powerType, isDirect) {
+  const mem = alarmMem[uc(code)];
+  if (mem && mem.alarmText) return detectCategoryFromAlarm(mem.alarmText, powerType, isDirect);
+  const p = uc(powerType);
+  if (p.includes("DG")) return "dg";
+  if (p.includes("SHARED")) return "thirdparty";
+  return "power";
+}
+
+function parseAlarmInputLine(line) {
+  let c = line.replace(/\*/g, "").trim();
+
+  const firstCode = c.match(/^([A-Za-z]{2,4}\d{2,4}[A-Za-z]?(?:\/[A-Za-z](?:\/[A-Za-z])?)?)/i);
+  if (firstCode) c = uc(firstCode[1]) + c.slice(firstCode[1].length);
+
+  const code = extractSiteCode(c);
+  if (!code) return null;
+
+  const afterCode = c.slice(code.length);
+  const parts = [...afterCode.matchAll(/\(([^)]*)\)/g)].map(m => m[1]);
+
+  let power = "";
+  let terminals = "";
+  let order = "power-first";
+
+  if (parts.length === 1) {
+    if (/^\d+T/i.test(parts[0])) { terminals = parts[0]; order = "term-first"; }
+    else { power = parts[0]; order = "power-first"; }
+  } else if (parts.length >= 2) {
+    if (/^\d+T/i.test(parts[0]) && !/^\d+T/i.test(parts[1])) {
+      terminals = parts[0]; power = parts[1]; order = "term-first";
+    } else {
+      power = parts[0]; terminals = parts[1]; order = "power-first";
+    }
+  }
+
+  let alarm = "";
+  if (/\/\/Cells Blocking/i.test(c)) {
+    const after = c.replace(code, "").replace(/\([^)]+\)/g, "").trim();
+    alarm = after.replace(/\/\/Cells Blocking/i, "").trim();
+  }
+
+  const textAfterTag = c.replace(code, "").replace(/\([^)]+\)/g, "").replace(/\/\/Cells Blocking/i, "").trim();
+
+  return { code, power, terminals, order, alarm, textAfterTag, raw: c };
+}
+
+// ============================
+// PENDING ACTIONS
+// ============================
+
+function preparePendingActions() {
+  const text = document.getElementById("alarmText").value;
+  if (!text.trim()) { notify("Paste alarms first."); return; }
+
+  const lines = text.split("\n");
+  const defaultCat = document.getElementById("alarmCategory").value;
+  const defaultDT = localInputToDisplay(document.getElementById("alarmDateTime").value);
+
+  pendingActions = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const cur = lines[i].trim();
+    if (!cur) { i++; continue; }
+
+    // restore
+    if (/restored/i.test(cur)) {
+      const code = extractSiteCode(cur.replace(/\*/g, ""));
+      if (code) pendingActions.push({ id: makeId(), type: "restore", code });
+      i++; continue;
+    }
+
+    // cleared unblocked
+    if (/cleared\s*unblocked/i.test(cur)) {
+      const code = uc(cur.replace(/\*/g, "").replace(/cleared\s*unblocked/i, "").trim().split(/\s/)[0]);
+      if (code) pendingActions.push({ id: makeId(), type: "unblock", code });
+      i++; continue;
+    }
+
+    // blocked
+    if (/\/\/Cells Blocking/i.test(cur)) {
+      const parsed = parseAlarmInputLine(cur);
+      if (parsed) {
+        pendingActions.push({
+          id: makeId(),
+          type: "blocked",
+          parsed,
+          category: defaultCat === "auto" ? "auto" : defaultCat,
+          dateTime: defaultDT,
+          raw: cur
+        });
+      }
+      i++; continue;
+    }
+
+    // down
+    const isDown = /Site\s*(direct\s*)?Down/i.test(cur) ||
+                   /Hub\s*and\s*Terminals?\s*(are\s*)?(direct\s*)?Down/i.test(cur) ||
+                   /Only\s*hub\s*is?\s*(direct\s*)?down/i.test(cur);
+
+    if (isDown) {
+      const parsed = parseAlarmInputLine(cur);
+      if (parsed) {
+        pendingActions.push({
+          id: makeId(),
+          type: "down",
+          parsed,
+          category: defaultCat === "auto" ? "auto" : defaultCat,
+          dateTime: defaultDT,
+          isDirect: /direct/i.test(cur),
+          isHubDown: /Hub\s*and\s*Terminals?/i.test(cur) || /Only\s*hub/i.test(cur),
+          raw: cur
+        });
+      }
+      i++; continue;
+    }
+
+    // remembered alarm
+    const parsed = parseAlarmInputLine(cur);
+    if (parsed && parsed.code && parsed.textAfterTag && (isPowerAlarm(parsed.textAfterTag) || isTempAlarm(parsed.textAfterTag))) {
+      pendingActions.push({
+        id: makeId(),
+        type: "rememberAlarm",
+        code: parsed.code,
+        alarmText: parsed.textAfterTag,
+        raw: cur
+      });
+      i++; continue;
+    }
+
+    // code + update line
+    const codeOnly = extractSiteCode(cur);
+    if (codeOnly && i + 1 < lines.length && lines[i+1].trim()) {
+      const next = lines[i+1].trim();
+      // Avoid wrongly capturing another alarm as update body
+      if (!/^\*?[A-Za-z]{2,4}\d{2,4}/.test(next)) {
+        pendingActions.push({
+          id: makeId(),
+          type: "updateComment",
+          code: uc(codeOnly),
+          comment: next
+        });
+        i += 2; continue;
+      }
+    }
+
+    pendingActions.push({ id: makeId(), type: "ignored", raw: cur });
+    i++;
+  }
+
+  renderPendingActions();
+}
+
+function renderPendingActions() {
+  const box = document.getElementById("alarmResult");
+  if (!pendingActions.length) {
+    box.innerHTML = `<div class="result-box"><div class="result-ignored">No valid actions detected.</div></div>`;
+    return;
+  }
+
+  let html = `<div class="result-box">`;
+
+  pendingActions.forEach(a => {
+    if (a.type === "down" || a.type === "blocked") {
+      html += `
+        <div class="pending-item">
+          <div class="pending-head">
+            <div class="pending-code">${escapeHtml(a.parsed.code)} - ${a.type.toUpperCase()}</div>
+            <div class="badge">${escapeHtml(a.raw)}</div>
+          </div>
+          <div class="pending-grid">
+            <div>
+              <label style="display:block;margin-bottom:4px;color:var(--muted);font-size:12px;font-weight:700;">Category</label>
+              <select id="pending-cat-${a.id}">
+                <option value="auto" ${a.category==="auto"?"selected":""}>🔍 Auto-detect</option>
+                <option value="dg" ${a.category==="dg"?"selected":""}>DG Issues</option>
+                <option value="power" ${a.category==="power"?"selected":""}>Power Issues</option>
+                <option value="temperature" ${a.category==="temperature"?"selected":""}>Temperature Issues</option>
+                <option value="thirdparty" ${a.category==="thirdparty"?"selected":""}>3rd Party Issues</option>
+                <option value="fiber" ${a.category==="fiber"?"selected":""}>Fiber Issues</option>
+                <option value="transmission" ${a.category==="transmission"?"selected":""}>Transmission Issues</option>
+                <option value="access" ${a.category==="access"?"selected":""}>Access Issues</option>
+                <option value="blocked" ${a.category==="blocked"?"selected":""}>Blocked Sites</option>
+              </select>
+            </div>
+            <div>
+              <label style="display:block;margin-bottom:4px;color:var(--muted);font-size:12px;font-weight:700;">Date/Time</label>
+              <input type="datetime-local" id="pending-dt-${a.id}" value="${displayToLocalInput(a.dateTime)}"/>
+            </div>
+          </div>
+          <div class="pending-meta">${escapeHtml(a.raw)}</div>
+        </div>
+      `;
+    } else {
+      let cls = "result-ignored";
+      if (a.type === "rememberAlarm") cls = "result-alarm";
+      if (a.type === "restore" || a.type === "unblock") cls = "result-removed";
+      if (a.type === "updateComment") cls = "result-updated";
+
+      let label = "";
+      if (a.type === "rememberAlarm") label = `${a.code} - alarm remembered: ${a.alarmText}`;
+      else if (a.type === "restore") label = `${a.code} - restore`;
+      else if (a.type === "unblock") label = `${a.code} - cleared unblocked`;
+      else if (a.type === "updateComment") label = `${a.code} - update comment`;
+      else label = `${a.raw} - ignored`;
+
+      html += `<div class="${cls}" style="margin-bottom:8px;">${escapeHtml(label)}</div>`;
+    }
+  });
+
+  html += `
+    <div style="margin-top:12px;">
+      <button class="btn btn-primary" onclick="applyPendingActions()">✅ Apply Pending</button>
+      <button class="btn btn-secondary" onclick="clearPendingActions()">🗑️ Clear Pending</button>
+    </div>
+  `;
+  html += `</div>`;
+  box.innerHTML = html;
+}
+
+function clearPendingActions() {
+  pendingActions = [];
+  document.getElementById("alarmResult").innerHTML = "";
+}
+
+// ============================
+// APPLY ACTIONS
+// ============================
+
+function applyPendingActions() {
+  if (!pendingActions.length) return;
+
+  const results = [];
+
+  pendingActions.forEach(a => {
+    if (a.type === "down" || a.type === "blocked") {
+      const catEl = document.getElementById(`pending-cat-${a.id}`);
+      const dtEl = document.getElementById(`pending-dt-${a.id}`);
+      if (catEl) a.category = catEl.value;
+      if (dtEl) a.dateTime = localInputToDisplay(dtEl.value || displayToLocalInput(a.dateTime));
+    }
+
+    switch (a.type) {
+      case "rememberAlarm":
+        alarmMem[uc(a.code)] = { alarmText: a.alarmText, time: Date.now() };
+        results.push({ type: "result-alarm", text: `${a.code} alarm remembered` });
+        break;
+
+      case "restore":
+        applyRestoreAction(a.code, results);
+        break;
+
+      case "unblock":
+        applyUnblockAction(a.code, results);
+        break;
+
+      case "updateComment":
+        applyUpdateCommentAction(a.code, a.comment, results);
+        break;
+
+      case "blocked":
+        applyBlockedAction(a, results);
+        break;
+
+      case "down":
+        applyDownAction(a, results);
+        break;
+
+      default:
+        results.push({ type: "result-ignored", text: `${a.raw || "Ignored"} ignored` });
+    }
+  });
+
+  state.dirty = true;
+  saveState();
+  renderSites();
+
+  let html = `<div class="result-box">`;
+  results.forEach(r => html += `<div class="${r.type}">${escapeHtml(r.text)}</div>`);
+  html += `</div>`;
+  document.getElementById("alarmResult").innerHTML = html;
+
+  pendingActions = [];
+  notify("Actions applied.");
+}
+
+function findEntriesByCode(code) {
+  return state.sites.filter(s => uc(s.code) === uc(code));
+}
+
+function findEntryIndex(code, category, section="daily") {
+  return state.sites.findIndex(s => uc(s.code) === uc(code) && s.category === category && s.section === section);
+}
+
+function findPrimaryEntryIndex(code) {
+  const matches = state.sites.filter(s => uc(s.code) === uc(code));
+  if (!matches.length) return -1;
+
+  // Prefer daily non-blocked
+  const preferred = matches
+    .filter(s => s.section === "daily" && s.category !== "blocked")
+    .sort((a,b) => extractTimestampFromLine(b.originalLine) - extractTimestampFromLine(a.originalLine));
+  if (preferred.length) return state.sites.findIndex(s => s.id === preferred[0].id);
+
+  // Then daily blocked
+  const blocked = matches
+    .filter(s => s.section === "daily" && s.category === "blocked")
+    .sort((a,b) => extractTimestampFromLine(b.originalLine) - extractTimestampFromLine(a.originalLine));
+  if (blocked.length) return state.sites.findIndex(s => s.id === blocked[0].id);
+
+  // Then old
+  const old = matches.sort((a,b) => extractTimestampFromLine(b.originalLine) - extractTimestampFromLine(a.originalLine));
+  return old.length ? state.sites.findIndex(s => s.id === old[0].id) : -1;
+}
+
+function applyRestoreAction(code, results) {
+  const all = state.sites.filter(s => uc(s.code) === uc(code));
+  if (!all.length) {
+    results.push({ type: "result-ignored", text: `${code} not found` });
+    return;
+  }
+  markRestore(code);
+  state.sites = state.sites.filter(s => uc(s.code) !== uc(code));
+  results.push({ type: "result-removed", text: `${code} restored and removed` });
+}
+
+function applyUnblockAction(code, results) {
+  const before = state.sites.length;
+  state.sites = state.sites.filter(s => !(uc(s.code) === uc(code) && s.category === "blocked"));
+  if (state.sites.length === before) results.push({ type: "result-ignored", text: `${code} not in blocked` });
+  else results.push({ type: "result-removed", text: `${code} cleared unblocked and removed from blocked` });
+}
+
+function applyUpdateCommentAction(code, comment, results) {
+  const idx = findPrimaryEntryIndex(code);
+  if (idx < 0) {
+    results.push({ type: "result-ignored", text: `${code} not found` });
+    return;
+  }
+  const site = state.sites[idx];
+  updateComment(site, comment);
+
+  if (/ACCESS\s*ISSUE/i.test(comment)) {
+    site.category = "access";
+    site.section = "daily";
+    results.push({ type: "result-moved", text: `${code} updated + moved to Access Issues` });
+  } else {
+    results.push({ type: "result-updated", text: `${code} comment updated` });
+  }
+}
+
+function markRestore(code) {
+  const k = uc(code);
+  const t = todayKey();
+  if (!flapMem[k] || flapMem[k].date !== t) flapMem[k] = { date: t, count: 1 };
+  else flapMem[k].count++;
+}
+
+function isFlapNow(code) {
+  const k = uc(code);
+  const t = todayKey();
+  // Flap on 3rd down => after 2 restores same day
+  return flapMem[k] && flapMem[k].date === t && flapMem[k].count >= 2;
+}
+
+function powerFamily(power) {
+  const p = uc(power);
+  if (p.includes("DG")) return "DG";
+  if (p.includes("MEW")) return "MEW";
+  if (p.includes("SHARED")) return "SHARED";
+  return "";
+}
+
+function addFlapToPower(power, shouldFlap) {
+  if (!shouldFlap) return power;
+  if (!power) return "Flap";
+  if (/\/Flap/i.test(power)) return power;
+  return power + "/Flap";
+}
+
+function cleanBlockedTerminals(terminals, power) {
+  if (!terminals) return "";
+  const powerHasVIP = /\/VIP/i.test(power || "");
+  const terminalHasVIP = /_VIP\b/i.test(terminals);
+
+  const count = (terminals.match(/^(\d+T)/i) || [])[1] || "";
+
+  if (powerHasVIP) return count;
+  if (terminalHasVIP) return terminals.replace(/_VIP\b/i, "/VIP");
+  return count;
+}
+
+function buildNewDownLine(parsed, dateTime, finalCategory, shouldFlap) {
+  const meta = {
+    code: parsed.code,
+    power: addFlapToPower(parsed.power || "", shouldFlap || finalCategory === "temperature"),
+    terminals: parsed.terminals || "",
+    order: parsed.order || "power-first",
+    dateTime,
+    tt: "**",
+    comment: "Team on the way."
+  };
+  return buildLine(meta, finalCategory);
+}
+
+function buildNewBlockedLine(parsed, dateTime, finalCategory, shouldFlap) {
+  const meta = {
+    code: parsed.code,
+    power: addFlapToPower(parsed.power || "", shouldFlap),
+    terminals: cleanBlockedTerminals(parsed.terminals || "", parsed.power || ""),
+    order: parsed.order || "power-first",
+    dateTime,
+    tt: "**",
+    alarm: parsed.alarm || "",
+    comment: "Team on the way."
+  };
+  return buildLine(meta, "blocked");
+}
+
+function spawnMissingTerminalEntriesFromOldSite(oldSite, newTermCodes = []) {
+  const oldMeta = extractLineMeta(oldSite.originalLine, oldSite.category);
+  const oldTermCodes = extractTerminalCodes(oldSite.originalLine);
+  const missing = oldTermCodes.filter(c => !newTermCodes.includes(c));
+
+  missing.forEach(tc => {
+    const exists = state.sites.find(s =>
+      uc(s.code) === uc(tc) &&
+      s.category === oldSite.category &&
+      s.section === oldSite.section
+    );
+    if (exists) return;
+
+    const meta = {
+      code: tc,
+      power: oldMeta.power,
+      terminals: "",
+      order: "power-first",
+      dateTime: oldMeta.dateTime,
+      tt: oldMeta.tt,
+      alarm: oldMeta.alarm,
+      comment: oldMeta.comment
+    };
+
+    const line = buildLine(meta, oldSite.category);
+    state.sites.push({
+      id: makeId(),
+      code: tc,
+      originalLine: line,
+      section: oldSite.section,
+      category: oldSite.category,
+      importOrder: 999999,
+      pinTime: 0
+    });
+  });
+}
+
+function addTerminalBesideHub(hubSite, termCode) {
+  const meta = extractLineMeta(hubSite.originalLine, hubSite.category);
+  let terminals = meta.terminals || "";
+
+  if (uc(terminals).includes(uc(termCode))) return;
+
+  if (/^\d+T_OH(?:_[A-Z0-9]+)?$/i.test(terminals)) {
+    terminals = terminals.replace(/_OH(?:_[A-Z0-9]+)?/i, "_" + uc(termCode));
+  } else if (terminals.includes("_")) {
+    terminals = terminals + "," + uc(termCode);
+  } else if (terminals) {
+    terminals = terminals + "_" + uc(termCode);
+  } else {
+    terminals = "1T_" + uc(termCode);
+  }
+
+  meta.terminals = terminals;
+  hubSite.originalLine = buildLine(meta, hubSite.category);
+}
+
+function findOHHubCandidate(targetCategory, terminalPower) {
+  const fam = powerFamily(terminalPower);
+  const candidates = state.sites.filter(s => {
+    if (s.section !== "daily") return false;
+    if (s.category !== targetCategory) return false;
+    const meta = extractLineMeta(s.originalLine, s.category);
+    if (!meta.terminals || !/OH/i.test(meta.terminals)) return false;
+    if (fam && powerFamily(meta.power) !== fam) return false;
+    return true;
+  });
+  if (!candidates.length) return -1;
+  const sorted = sortItems(candidates);
+  return state.sites.findIndex(s => s.id === sorted[0].id);
+}
+
+function applyBlockedAction(action, results) {
+  const parsed = action.parsed;
+  const finalCategory = action.category === "auto" ? "blocked" : action.category;
+  const shouldFlap = isFlapNow(parsed.code);
+  const newLine = buildNewBlockedLine(parsed, action.dateTime, finalCategory, shouldFlap);
+
+  // Update same-category existing line if exists
+  const sameIdx = findEntryIndex(parsed.code, finalCategory, "daily");
+  if (sameIdx >= 0) {
+    state.sites[sameIdx].originalLine = newLine;
+    state.sites[sameIdx].pinTime = Date.now();
+    results.push({ type: "result-updated", text: `${parsed.code} updated in ${categoryLabel(finalCategory)}` });
+    return;
+  }
+
+  // If different existing category with same code, add separate blocked line, do not remove existing
+  state.sites.push({
+    id: makeId(),
+    code: parsed.code,
+    originalLine: newLine,
+    section: "daily",
+    category: finalCategory,
+    importOrder: 999999,
+    pinTime: Date.now()
+  });
+  results.push({ type: "result-added", text: `${parsed.code} added to ${categoryLabel(finalCategory)}` });
+}
+
+function applyDownAction(action, results) {
+  const parsed = action.parsed;
+  let finalCategory = action.category === "auto"
+    ? detectCategoryFromMemory(parsed.code, parsed.power, action.isDirect)
+    : action.category;
+
+  let shouldFlap = isFlapNow(parsed.code);
+  if (finalCategory === "temperature") shouldFlap = true;
+
+  const newLine = buildNewDownLine(parsed, action.dateTime, finalCategory, shouldFlap);
+  const newTermCodes = extractTerminalCodes(`*${buildTag(parsed)}*`);
+
+  // If this terminal is going direct down and there is a hub-only OH candidate and no prior alarm => add beside hub, no separate entry
+  const hasRememberedAlarm = !!alarmMem[uc(parsed.code)];
+  if (!action.isHubDown && action.isDirect && !hasRememberedAlarm) {
+    const hubIdx = findOHHubCandidate(finalCategory, parsed.power);
+    if (hubIdx >= 0) {
+      addTerminalBesideHub(state.sites[hubIdx], parsed.code);
+      results.push({ type: "result-updated", text: `${parsed.code} added beside hub ${state.sites[hubIdx].code}` });
+      delete alarmMem[uc(parsed.code)];
+      return;
+    }
+  }
+
+  const blockedIdx = findEntryIndex(parsed.code, "blocked", "daily");
+  const targetIdx = findEntryIndex(parsed.code, finalCategory, "daily");
+  const primaryIdx = findPrimaryEntryIndex(parsed.code);
+
+  // If site already exists in target category, update it
+  if (targetIdx >= 0) {
+    const oldSite = state.sites[targetIdx];
+    spawnMissingTerminalEntriesFromOldSite(oldSite, newTermCodes);
+    oldSite.originalLine = newLine;
+    oldSite.section = "daily";
+    oldSite.category = finalCategory;
+    oldSite.pinTime = Date.now();
+    results.push({ type: "result-updated", text: `${parsed.code} updated in ${categoryLabel(finalCategory)}` });
+    delete alarmMem[uc(parsed.code)];
+    return;
+  }
+
+  // If site exists in another non-blocked category, update/move same entry
+  if (primaryIdx >= 0 && state.sites[primaryIdx].category !== "blocked") {
+    const oldSite = state.sites[primaryIdx];
+    spawnMissingTerminalEntriesFromOldSite(oldSite, newTermCodes);
+    oldSite.originalLine = newLine;
+    oldSite.section = "daily";
+    oldSite.category = finalCategory;
+    oldSite.pinTime = Date.now();
+    results.push({ type: "result-moved", text: `${parsed.code} moved to ${categoryLabel(finalCategory)}` });
+    delete alarmMem[uc(parsed.code)];
+    return;
+  }
+
+  // If blocked exists, keep blocked and add down too
+  if (blockedIdx >= 0) {
+    state.sites.push({
+      id: makeId(),
+      code: parsed.code,
+      originalLine: newLine,
+      section: "daily",
+      category: finalCategory,
+      importOrder: 999999,
+      pinTime: Date.now()
+    });
+    results.push({ type: "result-added", text: `${parsed.code} added to ${categoryLabel(finalCategory)} (kept in blocked too)` });
+    delete alarmMem[uc(parsed.code)];
+    return;
+  }
+
+  // Add as new
+  state.sites.push({
+    id: makeId(),
+    code: parsed.code,
+    originalLine: newLine,
+    section: "daily",
+    category: finalCategory,
+    importOrder: 999999,
+    pinTime: Date.now()
+  });
+  results.push({ type: "result-added", text: `${parsed.code} added to ${categoryLabel(finalCategory)}${shouldFlap ? " (Flap)" : ""}` });
+  delete alarmMem[uc(parsed.code)];
+}
+
+// ============================
+// STATS
+// ============================
+
+function updateStats() {
+  const daily = state.sites.filter(s => s.section === "daily");
+  const down = daily.filter(s => s.category !== "blocked");
+  const blocked = daily.filter(s => s.category === "blocked");
+  const old = state.sites.filter(s => s.section === "old");
+
+  document.getElementById("statDown").textContent = groupCount(down);
+  document.getElementById("statBlocked").textContent = groupCount(blocked);
+  document.getElementById("statOld").textContent = groupCount(old);
+  document.getElementById("statTotal").textContent = state.sites.length;
+}
+
+// ============================
+// OUTPUT
+// ============================
+
+function generateOutput() {
+  if (!state.dirty && state.importedRawText) {
+    document.getElementById("summaryOutput").textContent = state.importedRawText;
+    return;
+  }
+
+  const dailyGroups = {};
+  const oldGroups = {};
+
+  DAILY_CAT_ORDER.forEach(cat => {
+    dailyGroups[cat] = sortItems(state.sites.filter(s => s.section === "daily" && s.category === cat));
+  });
+
+  OLD_CAT_ORDER.forEach(cat => {
+    oldGroups[cat] = sortItems(state.sites.filter(s => s.section === "old" && s.category === cat));
+  });
+
+  const dailyDownItems = DAILY_CAT_ORDER.filter(c => c !== "blocked").flatMap(c => dailyGroups[c]);
+  const dailyBlockedItems = dailyGroups["blocked"];
+
+  const dailyDownCount = groupCount(dailyDownItems);
+  const dailyBlockedCount = groupCount(dailyBlockedItems);
+  const totalDaily = dailyDownCount + dailyBlockedCount;
+
+  let out = "";
+  out += "------------------------------------------------\n";
+  out += `*Daily Sites Down/Blocked: ${pad(totalDaily)}(${pad(dailyDownCount)}/${pad(dailyBlockedCount)})*\n`;
+  out += "------------------------------------------------\n";
+
+  const dailyLabels = {
+    dg:"DG Issues",
+    power:"Power Issues",
+    temperature:"Temperature Issues",
+    thirdparty:"3rd Party Issues",
+    fiber:"Fiber Issues",
+    transmission:"Transmission Issues",
+    access:"Access Issues",
+    blocked:"Blocked Sites"
+  };
+
+  DAILY_CAT_ORDER.forEach(cat => {
+    const items = dailyGroups[cat];
+    if (!items.length) return;
+    const count = groupCount(items);
+    if (cat === "blocked") out += `\n*Blocked Sites:${pad(count)}*\n`;
+    else out += `\n*${dailyLabels[cat]}: ${pad(count)}*\n`;
+    out += "--------------------------\n";
+    items.forEach(s => out += s.originalLine + "\n");
+  });
+
+  const allOld = state.sites.filter(s => s.section === "old");
+  if (allOld.length) {
+    const oldTotal = groupCount(allOld);
+    out += "\n----------------------------------------\n";
+    out += `*Old Pending Sites Down: ${pad(oldTotal)}*\n`;
+    out += "----------------------------------------\n";
+
+    const oldLabels = {
+      power:"Power issues",
+      access:"Access Issues",
+      thirdparty:"3rd Party Issues",
+      dg:"DG Issues",
+      temperature:"Temperature Issues",
+      fiber:"Fiber Issues",
+      transmission:"Transmission Issues",
+      special:"Temporary Dismantling/Under Relocation/Under Renovation/Under Dismantling/Under Vandalism"
+    };
+
+    const oldSeps = {
+      power:"--------------------------",
+      access:"--------------------------",
+      thirdparty:"--------------------------------------",
+      dg:"----------------------------------",
+      temperature:"--------------------------",
+      fiber:"--------------------------",
+      transmission:"--------------------------",
+      special:"-------------------------------------------------------------------------------------------------------------------------"
+    };
+
+    OLD_CAT_ORDER.forEach(cat => {
+      const items = oldGroups[cat];
+      if (!items.length) return;
+      const count = groupCount(items);
+      out += `\n*${oldLabels[cat]}: ${pad(count)}*\n`;
+      out += (oldSeps[cat] || "--------------------------") + "\n";
+      items.forEach(s => out += s.originalLine + "\n");
+    });
+  }
+
+  document.getElementById("summaryOutput").textContent = out.trim();
+}
+
+// ============================
+// COPY
+// ============================
+
+function copySummary() {
+  const box = document.getElementById("summaryOutput");
+  if (!box.textContent || box.textContent.includes("Click")) generateOutput();
+
+  navigator.clipboard.writeText(box.textContent).then(() => {
+    notify("Summary copied.");
+  }).catch(() => {
+    const ta = document.createElement("textarea");
+    ta.value = box.textContent;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    notify("Summary copied.");
+  });
+}
+
+// ============================
+// MANAGE / EDIT
+// ============================
+
+function renderSites() {
+  const list = document.getElementById("siteList");
+  const filter = document.getElementById("filterSection").value;
+  let items = state.sites.slice();
+
+  if (filter === "daily") items = items.filter(s => s.section === "daily");
+  if (filter === "old") items = items.filter(s => s.section === "old");
+
+  if (!items.length) {
+    list.innerHTML = `<div class="empty">No sites found.</div>`;
+    return;
+  }
+
+  items = sortItems(items);
+
+  list.innerHTML = items.map(site => {
+    let cls = "site-item";
+    if (site.category === "blocked") cls += " blocked";
+    if (site.category === "access") cls += " access";
+    if (site.category === "temperature") cls += " temperature";
+    if (site.category === "fiber") cls += " fiber";
+    if (site.category === "transmission") cls += " transmission";
+    if (site.category === "dg") cls += " dg";
+    if (site.section === "old") cls += " old";
+
+    return `
+      <div class="${cls}">
+        <div class="site-head">
+          <div class="site-code">${escapeHtml(site.code)}</div>
+          <div class="badges">
+            <span class="badge">${escapeHtml(site.section.toUpperCase())}</span>
+            <span class="badge">${escapeHtml(categoryLabel(site.category))}</span>
+          </div>
+        </div>
+        <div class="site-line">${escapeHtml(site.originalLine)}</div>
+        <div class="site-actions">
+          <button class="btn btn-secondary btn-sm" onclick="openEdit('${site.id}')">✏️ Edit</button>
+          <button class="btn btn-warning btn-sm" onclick="quickAccess('${site.id}')">🚪 Access</button>
+          <button class="btn btn-danger btn-sm" onclick="quickRestore('${site.id}')">✅ Restore</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function openEdit(id) {
+  const site = state.sites.find(s => s.id === id);
+  if (!site) return;
+  editingId = id;
+  document.getElementById("editTitle").textContent = "Edit " + site.code;
+  document.getElementById("editSection").value = site.section;
+  document.getElementById("editCategory").value = site.category;
+  document.getElementById("editLine").value = site.originalLine;
+  document.getElementById("editModal").classList.add("active");
+}
+
+function closeModal() {
+  document.getElementById("editModal").classList.remove("active");
+  editingId = null;
+}
+
+function saveEdit() {
+  const idx = state.sites.findIndex(s => s.id === editingId);
+  if (idx < 0) return;
+
+  state.sites[idx].section = document.getElementById("editSection").value;
+  state.sites[idx].category = document.getElementById("editCategory").value;
+  state.sites[idx].originalLine = document.getElementById("editLine").value;
+  state.sites[idx].code = extractSiteCode(state.sites[idx].originalLine) || state.sites[idx].code;
+  state.dirty = true;
+  saveState();
+  renderSites();
+  closeModal();
+  notify("Site updated.");
+}
+
+function moveCurrentToAccess() {
+  const idx = state.sites.findIndex(s => s.id === editingId);
+  if (idx < 0) return;
+  state.sites[idx].category = "access";
+  state.sites[idx].section = "daily";
+  state.dirty = true;
+  saveState();
+  renderSites();
+  closeModal();
+  notify("Moved to Access Issues.");
+}
+
+function restoreCurrent() {
+  if (!editingId) return;
+  quickRestore(editingId);
+  closeModal();
+}
+
+function quickAccess(id) {
+  const idx = state.sites.findIndex(s => s.id === id);
+  if (idx < 0) return;
+  state.sites[idx].category = "access";
+  state.sites[idx].section = "daily";
+  state.dirty = true;
+  saveState();
+  renderSites();
+  notify("Moved to Access Issues.");
+}
+
+function quickRestore(id) {
+  const idx = state.sites.findIndex(s => s.id === id);
+  if (idx < 0) return;
+  const code = state.sites[idx].code;
+  if (confirm(`Remove ${code} from summary?`)) {
+    markRestore(code);
+    state.sites = state.sites.filter(s => s.id !== id);
+    state.dirty = true;
+    saveState();
+    renderSites();
+    notify(`${code} restored and removed.`);
+  }
+}
+
+function clearAll() {
+  if (!confirm("Delete all data?")) return;
+  state = { sites: [], importedRawText: "", dirty: false, theme: state.theme };
+  alarmMem = {};
+  flapMem = {};
+  pendingActions = [];
+  saveState();
+  document.getElementById("summaryOutput").textContent = `Click "Generate Summary" to view output.`;
+  document.getElementById("importText").value = "";
+  document.getElementById("alarmText").value = "";
+  document.getElementById("importResult").innerHTML = "";
+  document.getElementById("alarmResult").innerHTML = "";
+  renderSites();
+  notify("All data cleared.");
+}
+
+document.getElementById("editModal").addEventListener("click", function(e) {
+  if (e.target === this) closeModal();
 });
-}
-
-function extractCodeFromLine(line){
-let t=line.trim();
-if(t.startsWith("*"))t=t.slice(1);
-const m=t.match(/^([^\s(*]+)/);
-return m?m[1].replace(/\*+$/,""):"";
-}
-
-function isHeaderOrSeparator(line){
-const t=line.trim();
-if(!t)return true;
-if(/^[-]{3,}$/.test(t))return true;
-if(/Daily Sites Down\/Blocked/i.test(t))return true;
-if(/Old Pending Sites Down/i.test(t))return true;
-if(/^(\*?)Power\s*[Ii]ssues:\s*\d/i.test(t))return true;
-if(/^(\*?)Access\s*[Ii]ssues:\s*\d/i.test(t))return true;
-if(/^(\*?)DG\s*[Ii]ssues:\s*\d/i.test(t))return true;
-if(/^(\*?)3rd\s*Party\s*[Ii]ssues:\s*\d/i.test(t))return true;
-if(/^(\*?)Blocked\s*Sites:\s*\d/i.test(t))return true;
-if(/^(\*?)Temperature\s*[Ii]ssues:\s*\d/i.test(t))return true;
-if(/^(\*?)Fiber\s*[Ii]ssues:\s*\d/i.test(t))return true;
-if(/^(\*?)Transmission\s*[Ii]ssues:\s*\d/i.test(t))return true;
-if(/Temporary Dismantling\/Under Relocation\/Under Renovation\/Under Dismantling\/Under Vandalism:\s*\d/i.test(t))return true;
-return false;
-}
-
-function getSelectedDateTime(){
-const val=document.getElementById("alarmDateTime").value;
-if(val){
-const d=new Date(val);
-return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+" "+pad(d.getHours())+":"+pad(d.getMinutes());
-}
-return nowDateTime();
-}
-
-function nowDateTime(){
-const d=new Date();
-return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+" "+pad(d.getHours())+":"+pad(d.getMinutes());
-}
-
-function isAlarmPower(text){
-const t=text.toLowerCase();
-for(const a of POWER_ALARMS){if(t.includes(a.toLowerCase()))return true;}
-return false;
-}
-
-function isAlarmTemp(text){
-const t=text.toLowerCase();
-for(const a of TEMP_ALARMS){if(t.includes(a.toLowerCase()))return true;}
-return false;
-}
-
-function extractPowerType(line){
-const parens=[...line.matchAll(/\(([^)]*)\)/g)].map(m=>m[1]);
-if(parens.length>0)return parens[0];
-return"";
-}
-
-function detectCategoryFromAlarmAndPower(alarmText,powerType,isDirect){
-const pt=(powerType||"").toUpperCase();
-const isTemp=isAlarmTemp(alarmText);
-const isPower=isAlarmPower(alarmText);
-
-// DG power type
-if(pt.includes("DG")){
-if(isDirect)return"dg";
-if(isTemp)return"temperature";
-return"dg";
-}
-
-// Shared power type
-if(pt.includes("SHARED"))return"thirdparty";
-
-// MEW or other
-if(isTemp)return"temperature";
-if(isPower)return"power";
-
-return"power";
-}
-
-function detectCategoryWithMemory(code,powerType,isDirect){
-const mem=alarmMemory[code.toUpperCase()];
-if(mem&&mem.alarmText){
-return detectCategoryFromAlarmAndPower(mem.alarmText,powerType,isDirect);
-}
-// No remembered alarm
-const pt=(powerType||"").toUpperCase();
-if(pt.includes("DG"))return"dg";
-if(pt.includes("SHARED"))return"thirdparty";
-return"power";
-}
-
-function parseAlarmLine(line){
-let clean=line.replace(/\*/g,"").trim();
-const code=extractCodeFromLine(clean);
-if(!code)return null;
-const afterCode=clean.slice(code.length);
-const parens=[...afterCode.matchAll(/\(([^)]*)\)/g)].map(m=>m[1]);
-let power="",terminals="";
-if(parens.length===1)power=parens[0];
-else if(parens.length>=2){power=parens[0];terminals=parens[1];}
-let alarm="";
-if(/\/\/Cells Blocking/i.test(clean)){
-const afterParens=clean.replace(code,"").replace(/\([^)]+\)/g,"").trim();
-alarm=afterParens.replace(/\/\/Cells\s*Blocking/i,"").trim();
-}
-// Get the text after the tag for alarm detection
-const textAfterTag=clean.replace(code,"").replace(/\([^)]+\)/g,"").replace(/\/\/Cells\s*Blocking/i,"").trim();
-return{code,power,terminals,alarm,textAfterTag};
-}
-
-function cleanBlockedTerminals(terminals,power){
-if(!terminals)return"";
-const powerVIP=/\/VIP/i.test(power||"");
-const termVIP=/_VIP\b/i.test(terminals);
-const count=(terminals.match(/^(\d+T)/i)||[])[1]||"";
-if(powerVIP)return count;
-if(termVIP)return terminals.replace(/_VIP\b/i,"/VIP");
-return count;
-}
-
-function buildNewDownLine(parsed,dateTime){
-let tag=parsed.code;
-if(parsed.power)tag+=`(${parsed.power})`;
-if(parsed.terminals)tag+=`(${parsed.terminals})`;
-return`*${tag}* ${dateTime} - ** - Team on the way to the site.`;
-}
-
-function buildNewBlockedLine(parsed,dateTime){
-let tag=parsed.code;
-if(parsed.power)tag+=`(${parsed.power})`;
-const ct=cleanBlockedTerminals(parsed.terminals,parsed.power);
-if(ct)tag+=`(${ct})`;
-return`*${tag}* ${dateTime} - ** - ${parsed.alarm} - Team on the way to the site.`;
-}
-
-function findByCode(code){return state.sites.findIndex(s=>s.code.toUpperCase()===code.toUpperCase());}
-
-function updateComment(site,newComment){
-const parts=site.originalLine.split(" - ");
-if(site.category==="blocked"){
-if(parts.length>=4){site.originalLine=[...parts.slice(0,3),newComment].join(" - ");}
-else if(parts.length>=3){site.originalLine=[...parts.slice(0,2),newComment].join(" - ");}
-else{site.originalLine+=" - "+newComment;}
-}else{
-if(parts.length>=3){site.originalLine=[...parts.slice(0,2),newComment].join(" - ");}
-else{site.originalLine+=" - "+newComment;}
-}
-}
-
-function importSummary(){
-const text=document.getElementById("importText").value;
-if(!text.trim()){notify("Paste summary first.");return;}
-const lines=text.split("\n");
-const imported=[];
-let section="daily",category="power";
-let orderCounters={};
-
-for(const rawLine of lines){
-const line=rawLine.trimEnd();
-if(!line.trim())continue;
-
-if(/Daily Sites Down\/Blocked/i.test(line)){section="daily";continue;}
-if(/Old Pending Sites Down/i.test(line)){section="old";continue;}
-
-if(/^(\*?)DG\s*[Ii]ssues:/i.test(line.trim())){category="dg";continue;}
-if(/^(\*?)Power\s*[Ii]ssues:/i.test(line.trim())){category="power";continue;}
-if(/^(\*?)Temperature\s*[Ii]ssues:/i.test(line.trim())){category="temperature";continue;}
-if(/^(\*?)3rd\s*Party\s*[Ii]ssues:/i.test(line.trim())){category="thirdparty";continue;}
-if(/^(\*?)Fiber\s*[Ii]ssues:/i.test(line.trim())){category="fiber";continue;}
-if(/^(\*?)Transmission\s*[Ii]ssues:/i.test(line.trim())){category="transmission";continue;}
-if(/^(\*?)Access\s*[Ii]ssues:/i.test(line.trim())){category="access";continue;}
-if(/^(\*?)Blocked\s*Sites:/i.test(line.trim())){category="blocked";continue;}
-if(/Temporary Dismantling\/Under Relocation\/Under Renovation\/Under Dismantling\/Under Vandalism:/i.test(line.trim())){category="special";continue;}
-
-if(isHeaderOrSeparator(line))continue;
-
-const code=extractCodeFromLine(line);
-if(!code)continue;
-
-const key=section+"_"+category;
-if(!orderCounters[key])orderCounters[key]=0;
-const order=orderCounters[key]++;
-
-imported.push({
-id:makeId(),
-code,
-originalLine:line,
-section,
-category,
-importOrder:order,
-pinTime:0
-});
-}
-
-state.sites=imported;
-state.dirty=true;
-saveSt();
-document.getElementById("importResult").innerHTML=`<div class="result-box"><div class="result-added">✅ Imported ${imported.length} lines.</div></div>`;
-renderSites();
-notify("Summary imported.");
-}
-
-function processNewAlarms(){
-const text=document.getElementById("alarmText").value;
-if(!text.trim()){notify("Paste alarms first.");return;}
-const lines=text.split("\n");
-const results=[];
-let i=0;
-const manualCat=document.getElementById("alarmCategory").value;
-const dateTime=getSelectedDateTime();
-
-while(i<lines.length){
-const cur=lines[i].trim();
-if(!cur){i++;continue;}
-
-// restored
-if(/restored/i.test(cur)){
-const code=extractCodeFromLine(cur.replace(/\*/g,""));
-if(code){
-const idx=findByCode(code);
-if(idx>-1){
-state.sites.splice(idx,1);state.dirty=true;
-delete alarmMemory[code.toUpperCase()];
-results.push({type:"result-removed",text:`${code} restored and removed`});
-}else{results.push({type:"result-ignored",text:`${code} not found`});}
-}
-i++;continue;
-}
-
-// blocked
-if(/\/\/Cells Blocking/i.test(cur)){
-const parsed=parseAlarmLine(cur);
-if(parsed){
-const idx=findByCode(parsed.code);
-const finalCat=(manualCat!=="auto")?manualCat:"blocked";
-const newLine=buildNewBlockedLine(parsed,dateTime);
-if(idx>-1){
-state.sites[idx].originalLine=newLine;
-state.sites[idx].category=finalCat;
-state.sites[idx].section="daily";
-state.sites[idx].pinTime=Date.now();
-state.dirty=true;
-results.push({type:"result-updated",text:`${parsed.code} updated to ${catLabel(finalCat)}`});
-}else{
-state.sites.push({id:makeId(),code:parsed.code,originalLine:newLine,section:"daily",category:finalCat,importOrder:999999,pinTime:Date.now()});
-state.dirty=true;
-results.push({type:"result-added",text:`${parsed.code} added to ${catLabel(finalCat)}`});
-}
-}else{results.push({type:"result-ignored",text:`${cur.slice(0,40)} ignored`});}
-i++;continue;
-}
-
-// Check if this is a down message
-const isDown=/Site\s*(direct\s*)?Down/i.test(cur)||/Hub\s*and\s*Terminals\s*(are\s*)?(direct\s*)?Down/i.test(cur)||/Only\s*hub\s*is\s*(direct\s*)?down/i.test(cur);
-const isDirect=/direct/i.test(cur);
-
-if(isDown){
-const parsed=parseAlarmLine(cur);
-if(parsed){
-const idx=findByCode(parsed.code);
-const newLine=buildNewDownLine(parsed,dateTime);
-
-let finalCat;
-if(manualCat!=="auto"){
-finalCat=manualCat;
-}else{
-finalCat=detectCategoryWithMemory(parsed.code,parsed.power,isDirect);
-}
-
-if(idx>-1){
-if(state.sites[idx].category==="blocked"){
-state.sites[idx].originalLine=newLine;
-state.sites[idx].category=finalCat;
-state.sites[idx].section="daily";
-state.sites[idx].pinTime=Date.now();
-state.dirty=true;
-results.push({type:"result-moved",text:`${parsed.code} moved from blocked to ${catLabel(finalCat)}`});
-}else{
-results.push({type:"result-ignored",text:`${parsed.code} already exists`});
-}
-}else{
-state.sites.push({id:makeId(),code:parsed.code,originalLine:newLine,section:"daily",category:finalCat,importOrder:999999,pinTime:Date.now()});
-state.dirty=true;
-results.push({type:"result-added",text:`${parsed.code} added to ${catLabel(finalCat)}`});
-}
-// Clear alarm memory after using it
-delete alarmMemory[parsed.code.toUpperCase()];
-}else{results.push({type:"result-ignored",text:`${cur.slice(0,40)} ignored`});}
-i++;continue;
-}
-
-// Check if this is an alarm (not down, not blocking) - remember it
-const parsed=parseAlarmLine(cur);
-if(parsed&&parsed.code&&parsed.textAfterTag){
-const alarmTxt=parsed.textAfterTag;
-if(alarmTxt&&(isAlarmPower(alarmTxt)||isAlarmTemp(alarmTxt))){
-alarmMemory[parsed.code.toUpperCase()]={alarmText:alarmTxt,time:Date.now()};
-results.push({type:"result-alarm",text:`${parsed.code} alarm remembered: ${alarmTxt.slice(0,50)}`});
-i++;continue;
-}
-}
-
-// Update: code on one line, comment on next
-const codeOnly=cur.replace(/\*/g,"").trim();
-if(/^[A-Z0-9\/]+$/i.test(codeOnly)&&i+1<lines.length){
-const next=lines[i+1].trim();
-if(next){
-const idx=findByCode(codeOnly);
-if(idx>-1){
-updateComment(state.sites[idx],next);
-if(/ACCESS\s*ISSUE/i.test(next)){
-state.sites[idx].category="access";
-state.sites[idx].section="daily";
-state.sites[idx].pinTime=Date.now();
-results.push({type:"result-moved",text:`${codeOnly} updated + moved to Access Issues`});
-}else{
-results.push({type:"result-updated",text:`${codeOnly} comment updated`});
-}
-state.dirty=true;
-}else{results.push({type:"result-ignored",text:`${codeOnly} not found`});}
-i+=2;continue;
-}
-}
-
-results.push({type:"result-ignored",text:`${cur.slice(0,60)} ignored`});
-i++;
-}
-
-saveSt();renderSites();
-let html='<div class="result-box">';
-if(!results.length)html+='<div class="result-ignored">No valid alarms found.</div>';
-else results.forEach(r=>{html+=`<div class="${r.type}">${escHtml(r.text)}</div>`;});
-html+='</div>';
-document.getElementById("alarmResult").innerHTML=html;
-notify("Alarms processed.");
-}
-
-function updateStats(){
-const daily=state.sites.filter(s=>s.section==="daily");
-const dailyDown=daily.filter(s=>s.category!=="blocked");
-const dailyBlocked=daily.filter(s=>s.category==="blocked");
-const old=state.sites.filter(s=>s.section==="old");
-document.getElementById("statDown").textContent=groupCount(dailyDown);
-document.getElementById("statBlocked").textContent=groupCount(dailyBlocked);
-document.getElementById("statOld").textContent=groupCount(old);
-document.getElementById("statTotal").textContent=state.sites.length;
-}
-
-function generateOutput(){
-const groups={};
-DAILY_CAT_ORDER.forEach(c=>{groups["daily_"+c]=sortGroup(state.sites.filter(s=>s.section==="daily"&&s.category===c));});
-
-const oldCats=["power","access","thirdparty","dg","special"];
-oldCats.forEach(c=>{groups["old_"+c]=sortGroup(state.sites.filter(s=>s.section==="old"&&s.category===c));});
-
-// Also check for temperature/fiber/transmission in old pending (in case moved there)
-["temperature","fiber","transmission"].forEach(c=>{
-const items=sortGroup(state.sites.filter(s=>s.section==="old"&&s.category===c));
-if(items.length)groups["old_"+c]=items;
-});
-
-const dailyDownItems=DAILY_CAT_ORDER.filter(c=>c!=="blocked").flatMap(c=>groups["daily_"+c]||[]);
-const dailyBlockedItems=groups["daily_blocked"]||[];
-const dailyDownCount=groupCount(dailyDownItems);
-const dailyBlockedCount=groupCount(dailyBlockedItems);
-const totalDaily=dailyDownCount+dailyBlockedCount;
-
-let o="";
-o+="------------------------------------------------\n";
-o+=`*Daily Sites Down/Blocked: ${pad(totalDaily)}(${pad(dailyDownCount)}/${pad(dailyBlockedCount)})*\n`;
-o+="------------------------------------------------\n";
-
-// Daily categories in priority order
-const dailyCatLabels={
-dg:"DG Issues",power:"Power Issues",temperature:"Temperature Issues",
-thirdparty:"3rd Party Issues",fiber:"Fiber Issues",transmission:"Transmission Issues",
-access:"Access Issues",blocked:"Blocked Sites"
-};
-
-DAILY_CAT_ORDER.forEach(cat=>{
-const items=groups["daily_"+cat]||[];
-if(items.length){
-const count=groupCount(items);
-if(cat==="blocked"){
-o+=`\n*Blocked Sites:${pad(count)}*\n`;
-}else{
-o+=`\n*${dailyCatLabels[cat]}: ${pad(count)}*\n`;
-}
-o+="--------------------------\n";
-items.forEach(s=>{o+=s.originalLine+"\n";});
-}
-});
-
-// Old Pending
-const allOld=state.sites.filter(s=>s.section==="old");
-if(allOld.length){
-const oldTotal=groupCount(allOld);
-o+="\n----------------------------------------\n";
-o+=`*Old Pending Sites Down: ${pad(oldTotal)}*\n`;
-o+="----------------------------------------\n";
-
-const oldOrder=["power","access","thirdparty","dg","temperature","fiber","transmission","special"];
-const oldLabels={
-power:"Power issues",access:"Access Issues",thirdparty:"3rd Party Issues",
-dg:"DG Issues",temperature:"Temperature Issues",fiber:"Fiber Issues",
-transmission:"Transmission Issues",
-special:"Temporary Dismantling/Under Relocation/Under Renovation/Under Dismantling/Under Vandalism"
-};
-const oldSeps={
-power:"--------------------------",access:"--------------------------",
-thirdparty:"--------------------------------------",dg:"----------------------------------",
-temperature:"--------------------------",fiber:"--------------------------",
-transmission:"--------------------------",
-special:"-------------------------------------------------------------------------------------------------------------------------"
-};
-
-oldOrder.forEach(cat=>{
-const items=groups["old_"+cat]||[];
-if(items.length){
-const count=groupCount(items);
-o+=`\n*${oldLabels[cat]}: ${pad(count)}*\n`;
-o+=(oldSeps[cat]||"--------------------------")+"\n";
-items.forEach(s=>{o+=s.originalLine+"\n";});
-}
-});
-}
-
-document.getElementById("summaryOutput").textContent=o.trim();
-}
-
-function copySummary(){
-const box=document.getElementById("summaryOutput");
-if(!box.textContent||box.textContent.includes('Click "Generate Summary"'))generateOutput();
-navigator.clipboard.writeText(box.textContent).then(()=>{notify("Summary copied.");}).catch(()=>{
-const ta=document.createElement("textarea");ta.value=box.textContent;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);notify("Summary copied.");
-});
-}
-
-function renderSites(){
-const list=document.getElementById("siteList");
-const filter=document.getElementById("filterSection").value;
-let items=state.sites.slice();
-if(filter==="daily")items=items.filter(s=>s.section==="daily");
-if(filter==="old")items=items.filter(s=>s.section==="old");
-if(!items.length){list.innerHTML='<div class="empty">No sites found.</div>';return;}
-items.sort((a,b)=>{
-if((a.pinTime||0)!==(b.pinTime||0))return(b.pinTime||0)-(a.pinTime||0);
-return(a.importOrder||0)-(b.importOrder||0);
-});
-list.innerHTML=items.map(site=>{
-let cls="site-item";
-if(site.category==="blocked")cls+=" blocked";
-if(site.category==="access")cls+=" access";
-if(site.category==="temperature")cls+=" temperature";
-if(site.category==="fiber")cls+=" fiber";
-if(site.category==="transmission")cls+=" transmission";
-if(site.section==="old")cls+=" old";
-return`
-<div class="${cls}">
-<div class="site-head">
-<div class="site-code">${escHtml(site.code)}</div>
-<div class="badges">
-<span class="badge">${escHtml(site.section.toUpperCase())}</span>
-<span class="badge">${escHtml(catLabel(site.category))}</span>
-</div>
-</div>
-<div class="site-line">${escHtml(site.originalLine)}</div>
-<div class="site-actions">
-<button class="btn btn-secondary btn-sm" onclick="openEdit('${site.id}')">✏️ Edit</button>
-<button class="btn btn-warning btn-sm" onclick="quickAccess('${site.id}')">🚪 Access</button>
-<button class="btn btn-danger btn-sm" onclick="quickRestore('${site.id}')">✅ Restore</button>
-</div>
-</div>`;
-}).join("");
-}
-
-function openEdit(id){
-const site=state.sites.find(s=>s.id===id);
-if(!site)return;
-editingId=id;
-document.getElementById("editTitle").textContent="Edit "+site.code;
-document.getElementById("editSection").value=site.section;
-document.getElementById("editCategory").value=site.category;
-document.getElementById("editLine").value=site.originalLine;
-document.getElementById("editModal").classList.add("active");
-}
-
-function closeModal(){document.getElementById("editModal").classList.remove("active");editingId=null;}
-
-function saveEdit(){
-const idx=state.sites.findIndex(s=>s.id===editingId);
-if(idx<0)return;
-state.sites[idx].section=document.getElementById("editSection").value;
-state.sites[idx].category=document.getElementById("editCategory").value;
-state.sites[idx].originalLine=document.getElementById("editLine").value;
-state.sites[idx].code=extractCodeFromLine(state.sites[idx].originalLine)||state.sites[idx].code;
-state.dirty=true;saveSt();renderSites();closeModal();notify("Site updated.");
-}
-
-function moveCurrentToAccess(){
-const idx=state.sites.findIndex(s=>s.id===editingId);
-if(idx<0)return;
-state.sites[idx].category="access";state.sites[idx].section="daily";state.sites[idx].pinTime=Date.now();
-state.dirty=true;saveSt();renderSites();closeModal();notify("Moved to Access Issues.");
-}
-
-function restoreCurrent(){if(!editingId)return;quickRestore(editingId);closeModal();}
-
-function quickAccess(id){
-const idx=state.sites.findIndex(s=>s.id===id);
-if(idx<0)return;
-state.sites[idx].category="access";state.sites[idx].section="daily";state.sites[idx].pinTime=Date.now();
-state.dirty=true;saveSt();renderSites();notify("Moved to Access Issues.");
-}
-
-function quickRestore(id){
-const idx=state.sites.findIndex(s=>s.id===id);
-if(idx<0)return;
-const code=state.sites[idx].code;
-if(confirm(`Remove ${code} from summary?`)){
-state.sites.splice(idx,1);state.dirty=true;saveSt();renderSites();notify(`${code} restored and removed.`);
-}
-}
-
-function clearAll(){
-if(!confirm("Delete all data?"))return;
-state={sites:[],dirty:false,theme:state.theme};
-alarmMemory={};
-saveSt();
-document.getElementById("summaryOutput").textContent='Click "Generate Summary" to view output.';
-document.getElementById("importText").value="";
-document.getElementById("alarmText").value="";
-document.getElementById("importResult").innerHTML="";
-document.getElementById("alarmResult").innerHTML="";
-renderSites();notify("All data cleared.");
-}
-
-document.getElementById("editModal").addEventListener("click",function(e){if(e.target===this)closeModal();});
 </script>
 </body>
 </html>
