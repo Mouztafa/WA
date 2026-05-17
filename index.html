@@ -40,13 +40,21 @@ textarea{min-height:240px;resize:vertical;font-family:"Courier New",monospace;li
 .btn-danger{background:var(--danger);color:#fff}
 .btn-warning{background:var(--warning);color:#111}
 .btn-sm{padding:7px 10px;font-size:12px}
-.summary-box{margin-top:14px;background:#000;color:#fff;border-radius:12px;padding:16px;font-family:"Courier New",monospace;white-space:pre-wrap;word-break:break-word;max-height:680px;overflow-y:auto;line-height:1.4;border:1px solid #222}
+.summary-box{
+  margin-top:14px;background:#000;color:#fff;border-radius:12px;padding:16px;
+  font-family:"Courier New",monospace;white-space:pre-wrap;word-break:break-word;
+  max-height:680px;overflow-y:auto;line-height:1.4;border:1px solid #222;
+  overflow-x:auto;
+}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
 .alarm-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;padding:12px;background:var(--panel2);border:1px solid var(--border);border-radius:10px}
 .alarm-controls label{color:var(--muted);font-size:12px;font-weight:700;margin-right:4px}
 .alarm-controls select,.alarm-controls input{width:auto;min-width:180px}
 .site-list{display:grid;gap:10px}
-.site-item{border:1px solid var(--border);background:var(--panel2);border-left:4px solid var(--primary);border-radius:12px;padding:14px}
+.site-item{
+  border:1px solid var(--border);background:var(--panel2);border-left:4px solid var(--primary);
+  border-radius:12px;padding:14px;overflow-x:auto;
+}
 .site-item.blocked{border-left-color:var(--danger)}
 .site-item.access{border-left-color:var(--warning)}
 .site-item.temperature{border-left-color:#f59e0b}
@@ -58,7 +66,10 @@ textarea{min-height:240px;resize:vertical;font-family:"Courier New",monospace;li
 .site-code{font-weight:800;color:var(--primary)}
 .badges{display:flex;gap:6px;flex-wrap:wrap}
 .badge{font-size:11px;padding:4px 8px;border-radius:999px;background:var(--secondary);color:#fff}
-.site-line{font-family:"Courier New",monospace;font-size:12px;color:var(--muted);white-space:pre-wrap;word-break:break-word}
+.site-line{
+  font-family:"Courier New",monospace;font-size:12px;color:var(--muted);
+  white-space:pre-wrap;word-break:break-word;overflow-x:auto;max-width:100%;
+}
 .site-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .result-box{margin-top:12px;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:13px;max-height:360px;overflow-y:auto}
@@ -68,6 +79,7 @@ textarea{min-height:240px;resize:vertical;font-family:"Courier New",monospace;li
 .result-moved{color:var(--purple)}
 .result-removed{color:#f87171}
 .result-alarm{color:#06b6d4}
+.result-cancelled{color:#fb923c}
 .pending-item{border:1px solid var(--border);padding:10px;border-radius:10px;margin-bottom:10px;background:var(--panel)}
 .pending-head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .pending-code{font-weight:700;color:var(--primary)}
@@ -123,7 +135,7 @@ textarea{min-height:240px;resize:vertical;font-family:"Courier New",monospace;li
 
   <div class="panel" id="oldsummary">
     <h2>Old Summary</h2>
-    <div class="hint">Paste your previous WhatsApp summary exactly as it is. If you do not change anything, the app keeps it exactly the same.</div>
+    <div class="hint">Paste your previous WhatsApp summary exactly as it is.</div>
     <textarea id="importText" placeholder="Paste your full old WhatsApp summary here..."></textarea>
     <button class="btn btn-primary" onclick="importSummary()">📥 Load Summary</button>
     <button class="btn btn-secondary" onclick="document.getElementById('importText').value=''">🗑️ Clear</button>
@@ -133,10 +145,11 @@ textarea{min-height:240px;resize:vertical;font-family:"Courier New",monospace;li
   <div class="panel" id="alarms">
     <h2>New Alarms</h2>
     <div class="hint">
-      Process supports: down, direct down, hub down, blocked, restore, cleared unblocked, comment updates, access updates, remembered alarms.<br>
-      After pressing <b>Process</b>, you can edit each detected site's time individually before applying.
+      Supports: down, direct down, hub down, blocked (//Cells Blocking), restore, cleared/unblocked,
+      hub-only restore, comment updates, access updates, remembered alarms.<br>
+      Duplicates are auto-deduplicated. If a site is blocked then cleared in same batch, both cancel out.<br>
+      After pressing <b>Process</b>, edit each site's time before applying.
     </div>
-
     <div class="alarm-controls">
       <div>
         <label>Category Override:</label>
@@ -157,7 +170,6 @@ textarea{min-height:240px;resize:vertical;font-family:"Courier New",monospace;li
         <input type="datetime-local" id="alarmDateTime"/>
       </div>
     </div>
-
     <textarea id="alarmText" placeholder="Paste alarms or updates here..."></textarea>
     <div style="margin-top:8px;">
       <button class="btn btn-primary" onclick="preparePendingActions()">⚡ Process</button>
@@ -220,656 +232,672 @@ textarea{min-height:240px;resize:vertical;font-family:"Courier New",monospace;li
 </div>
 
 <script>
-const STORAGE_KEY = "wa_summary_master_v10";
+const STORAGE_KEY   = "wa_summary_master_v10";
 const ALARM_MEM_KEY = STORAGE_KEY + "_alarmMem";
-const FLAP_MEM_KEY = STORAGE_KEY + "_flapMem";
+const FLAP_MEM_KEY  = STORAGE_KEY + "_flapMem";
 
 const POWER_ALARMS = [
-  "Commercial Power Failure",
-  "Mains Input Out of Range",
-  "AC Mains Power Failure",
-  "Incoming Mains Voltage Out of Range",
-  "Hybrid DG Abnormal",
-  "Rectifier AC Power Failure",
-  "Rectifier DC Voltage Low",
-  "Rectifier DC Low Voltage"
+  "Commercial Power Failure","Mains Input Out of Range","AC Mains Power Failure",
+  "Incoming Mains Voltage Out of Range","Hybrid DG Abnormal","Rectifier AC Power Failure",
+  "Rectifier DC Voltage Low","Rectifier DC Low Voltage"
 ];
-
 const TEMP_ALARMS_FIXED = [
-  "Cabinet Air Inlet Temperature Unacceptable",
-  "Board Temperature unacceptable",
-  "Ambient Temperature"
+  "Cabinet Air Inlet Temperature Unacceptable","Board Temperature unacceptable","Ambient Temperature"
 ];
 
 const DAILY_CAT_ORDER = ["dg","power","temperature","thirdparty","fiber","transmission","access","blocked"];
-const OLD_CAT_ORDER = ["power","access","thirdparty","dg","temperature","fiber","transmission","special"];
+const OLD_CAT_ORDER   = ["power","access","thirdparty","dg","temperature","fiber","transmission","special"];
 
-let state = loadState();
-let alarmMem = JSON.parse(localStorage.getItem(ALARM_MEM_KEY) || "{}");
-let flapMem = JSON.parse(localStorage.getItem(FLAP_MEM_KEY) || "{}");
-let editingId = null;
+let state          = loadState();
+let alarmMem       = JSON.parse(localStorage.getItem(ALARM_MEM_KEY) || "{}");
+let flapMem        = JSON.parse(localStorage.getItem(FLAP_MEM_KEY)  || "{}");
+let editingId      = null;
 let pendingActions = [];
 
-function loadState() {
+function loadState(){
   try {
-    return {
-      sites: [],
-      importedRawText: "",
-      dirty: false,
-      theme: "dark",
-      ...JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}")
-    };
-  } catch {
-    return { sites: [], importedRawText: "", dirty: false, theme: "dark" };
-  }
+    return { sites:[],importedRawText:"",dirty:false,theme:"dark",
+             ...JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}") };
+  } catch{ return {sites:[],importedRawText:"",dirty:false,theme:"dark"}; }
 }
-
-function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+function saveState(){
+  localStorage.setItem(STORAGE_KEY,   JSON.stringify(state));
   localStorage.setItem(ALARM_MEM_KEY, JSON.stringify(alarmMem));
-  localStorage.setItem(FLAP_MEM_KEY, JSON.stringify(flapMem));
+  localStorage.setItem(FLAP_MEM_KEY,  JSON.stringify(flapMem));
   updateStats();
 }
 
-function notify(msg) {
-  const n = document.createElement("div");
-  n.className = "notif";
-  n.textContent = msg;
+function notify(msg){
+  const n=document.createElement("div");
+  n.className="notif"; n.textContent=msg;
   document.body.appendChild(n);
-  setTimeout(() => n.remove(), 2500);
+  setTimeout(()=>n.remove(),2500);
 }
+function pad(n){ return String(n).padStart(2,"0"); }
+function uc(s) { return (s||"").toUpperCase(); }
+function makeId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+function escapeHtml(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
-function pad(n) { return String(n).padStart(2, "0"); }
-function uc(s) { return (s || "").toUpperCase(); }
-function makeId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
-function escapeHtml(str){return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
-
-function categoryLabel(cat) {
+function categoryLabel(cat){
   return {
-    dg:"DG Issues",
-    power:"Power Issues",
-    temperature:"Temperature Issues",
-    thirdparty:"3rd Party Issues",
-    fiber:"Fiber Issues",
-    transmission:"Transmission Issues",
-    access:"Access Issues",
-    blocked:"Blocked Sites",
+    dg:"DG Issues",power:"Power Issues",temperature:"Temperature Issues",
+    thirdparty:"3rd Party Issues",fiber:"Fiber Issues",transmission:"Transmission Issues",
+    access:"Access Issues",blocked:"Blocked Sites",
     special:"Temporary Dismantling/Under Relocation/Under Renovation/Under Dismantling/Under Vandalism"
-  }[cat] || cat;
+  }[cat]||cat;
 }
 
-function todayKey() {
-  const d = new Date();
+function todayKey(){
+  const d=new Date();
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 }
 
-function cleanFlapMemory() {
-  const today = todayKey();
-  const clean = {};
-  for (const key in flapMem) {
-    if (flapMem[key].date === today) clean[key] = flapMem[key];
-  }
-  flapMem = clean;
+function cleanFlapMemory(){
+  const today=todayKey(), clean={};
+  for(const k in flapMem) if(flapMem[k].date===today) clean[k]=flapMem[k];
+  flapMem=clean;
+}
+function cleanAlarmMemory(){
+  const cutoff=Date.now()-30*24*60*60*1000, clean={};
+  for(const k in alarmMem)
+    if(alarmMem[k].time && alarmMem[k].time>cutoff) clean[k]=alarmMem[k];
+  alarmMem=clean;
 }
 
-function toggleTheme() {
-  state.theme = state.theme === "dark" ? "light" : "dark";
-  document.body.setAttribute("data-theme", state.theme);
+function toggleTheme(){
+  state.theme=state.theme==="dark"?"light":"dark";
+  document.body.setAttribute("data-theme",state.theme);
   saveState();
 }
 
-function setDefaultDateTime() {
-  const n = new Date();
-  document.getElementById("alarmDateTime").value =
-    new Date(n.getTime() - n.getTimezoneOffset()*60000).toISOString().slice(0, 16);
+function setDefaultDateTime(){
+  const n=new Date();
+  document.getElementById("alarmDateTime").value=
+    new Date(n.getTime()-n.getTimezoneOffset()*60000).toISOString().slice(0,16);
 }
 
-function openTab(id, btn) {
-  document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
-  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+function localInputToDisplay(v){
+  if(!v) return nowDisplayDateTime();
+  const[datePart,timePart]=v.split("T");
+  if(!datePart||!timePart) return nowDisplayDateTime();
+  const[yr,mo,dy]=datePart.split("-").map(Number);
+  const[hr,mi]=timePart.split(":").map(Number);
+  if(!yr||!mo||!dy||isNaN(hr)||isNaN(mi)) return nowDisplayDateTime();
+  return `${yr}-${pad(mo)}-${pad(dy)} ${pad(hr)}:${pad(mi)}`;
+}
+function displayToLocalInput(dt){
+  const m=dt&&dt.match(/(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})/);
+  return m?`${m[1]}T${m[2]}`:"";
+}
+function nowDisplayDateTime(){
+  const d=new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function extractDateTimeFromLine(line){
+  const m=line.match(/(\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2})/);
+  return m?m[1].replace("T"," "):"";
+}
+function extractTimestampFromLine(line){
+  const dt=extractDateTimeFromLine(line);
+  if(!dt) return 0;
+  const t=new Date(dt.replace(" ","T")).getTime();
+  return isNaN(t)?0:t;
+}
+
+function openTab(id,btn){
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
   document.getElementById(id).classList.add("active");
   btn.classList.add("active");
-  if (id === "manage") renderSites();
-  if (id === "summary") generateOutput();
-  if (id === "alarms") setDefaultDateTime();
+  if(id==="manage") renderSites();
+  if(id==="summary") generateOutput();
+  if(id==="alarms") setDefaultDateTime();
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  document.body.setAttribute("data-theme", state.theme || "dark");
-  cleanFlapMemory();
-  setDefaultDateTime();
-  updateStats();
+document.addEventListener("DOMContentLoaded",()=>{
+  document.body.setAttribute("data-theme",state.theme||"dark");
+  cleanFlapMemory(); cleanAlarmMemory();
+  setDefaultDateTime(); updateStats();
 });
 
-// ============================
-// DATE / TIME HELPERS
-// ============================
-
-function localInputToDisplay(v) {
-  if (!v) return nowDisplayDateTime();
-  const d = new Date(v);
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function displayToLocalInput(dt) {
-  const m = dt && dt.match(/(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})/);
-  if (!m) return "";
-  return `${m[1]}T${m[2]}`;
-}
-
-function nowDisplayDateTime() {
-  const d = new Date();
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function extractDateTimeFromLine(line) {
-  const m = line.match(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2})/);
-  return m ? m[1] : "";
-}
-
-function extractTimestampFromLine(line) {
-  const dt = extractDateTimeFromLine(line);
-  if (!dt) return 0;
-  const t = new Date(dt.replace(" ", "T")).getTime();
-  return Number.isNaN(t) ? 0 : t;
-}
-
-// ============================
+// ═══════════════════════════════════════════════════
 // COUNTING
-// ============================
-
-function countSectors(line) {
-  const m = line.match(/\*?([A-Z]{2,4}\d{2,4})([A-Z](?:\/[A-Z])*)/i);
-  if (m && m[2]) return m[2].split("/").length;
-  return 1;
+// ═══════════════════════════════════════════════════
+function countSectors(line){
+  const m=line.match(/\*?([A-Z]{2,4}\d{2,4})([A-Z](?:\/[A-Z])*)/i);
+  return(m&&m[2])?m[2].split("/").length:1;
 }
-
-function countTerminals(line) {
-  const parens = [...line.matchAll(/\(([^)]*)\)/g)].map(m => m[1]);
-  for (const content of parens) {
-    const m = content.match(/(\d+)T/i);
-    if (m) return parseInt(m[1], 10);
-  }
+function countTerminals(line){
+  const parens=[...line.matchAll(/\(([^)]*)\)/g)].map(m=>m[1]);
+  for(const c of parens){const m=c.match(/(\d+)T/i);if(m)return parseInt(m[1],10);}
   return 0;
 }
-
-function extractTerminalCodes(line) {
-  const parens = [...line.matchAll(/\(([^)]*)\)/g)].map(m => m[1]);
-  for (const content of parens) {
-    const m = content.match(/\d+T[_]?(.*)/i);
-    if (m && m[1]) {
-      return m[1]
-        .split(",")
-        .map(s => uc(s.trim()))
-        .filter(s =>
-          s &&
-          !/^\d/.test(s) &&
-          s !== "OH" &&
-          s !== "4G" &&
-          s !== "3G" &&
-          s !== "2G" &&
-          s !== "VIP"
-        );
+function extractTerminalCodes(line){
+  const parens=[...line.matchAll(/\(([^)]*)\)/g)].map(m=>m[1]);
+  for(const content of parens){
+    const m=content.match(/\d+T[_]?(.*)/i);
+    if(m&&m[1]){
+      return m[1].split(/[,_]/).map(s=>uc(s.trim())).filter(s=>
+        s&&!/^\d/.test(s)&&!["OH","4G","3G","2G","VIP"].includes(s)&&
+        !/^(OH|VIP)_/i.test(s)&&!/_?(OH|VIP)$/i.test(s)
+      );
     }
   }
-  return [];
+  return[];
 }
-
-function countContribution(site, sameCategoryItems) {
-  const sectors = countSectors(site.originalLine);
-
-  // Blocked => count sectors only, not terminals
-  if (site.category === "blocked") return sectors;
-
-  const terminals = countTerminals(site.originalLine);
-  const termCodes = extractTerminalCodes(site.originalLine);
-
-  // Do not double count terminals that already exist as separate entries
-  let duplicates = 0;
-  for (const code of termCodes) {
-    const exists = sameCategoryItems.find(s =>
-      s.id !== site.id &&
-      uc(s.code) === uc(code) &&
-      s.section === site.section &&
-      s.category === site.category
-    );
-    if (exists) duplicates++;
+function countContribution(site,sameCategoryItems){
+  const sectors=countSectors(site.originalLine);
+  if(site.category==="blocked") return sectors;
+  const terminals=countTerminals(site.originalLine);
+  const termCodes=extractTerminalCodes(site.originalLine);
+  let duplicates=0;
+  for(const code of termCodes){
+    if(sameCategoryItems.find(s=>s.id!==site.id&&uc(s.code.trim())===uc(code.trim())&&
+       s.section===site.section&&s.category===site.category)) duplicates++;
   }
-
-  return sectors + Math.max(0, terminals - duplicates);
+  return sectors+Math.max(0,terminals-duplicates);
+}
+function groupCount(items){
+  return items.reduce((sum,s)=>sum+countContribution(s,items),0);
 }
 
-function groupCount(items) {
-  return items.reduce((sum, s) => sum + countContribution(s, items), 0);
-}
-
-// ============================
+// ═══════════════════════════════════════════════════
 // SORTING
-// ============================
-
-function sortItems(items) {
-  return items.slice().sort((a, b) => {
-    const at = extractTimestampFromLine(a.originalLine);
-    const bt = extractTimestampFromLine(b.originalLine);
-    if (at !== bt) return bt - at; // newest first by real line time
-    const ap = a.pinTime || 0;
-    const bp = b.pinTime || 0;
-    if (ap !== bp) return bp - ap;
-    return (a.importOrder || 0) - (b.importOrder || 0);
+// ═══════════════════════════════════════════════════
+function sortItems(items){
+  return items.slice().sort((a,b)=>{
+    const at=extractTimestampFromLine(a.originalLine),bt=extractTimestampFromLine(b.originalLine);
+    if(at!==bt) return bt-at;
+    const ap=a.pinTime||0,bp=b.pinTime||0;
+    if(ap!==bp) return bp-ap;
+    return(a.importOrder||0)-(b.importOrder||0);
   });
 }
 
-// ============================
+// ═══════════════════════════════════════════════════
 // TAG / LINE PARSING
-// ============================
-
-function extractSiteCode(line) {
-  let t = line.trim();
-  if (t.startsWith("*")) t = t.slice(1);
-  const m = t.match(/^([^\s(*]+)/);
-  return m ? uc(m[1].replace(/\*+$/, "")) : "";
+// ═══════════════════════════════════════════════════
+function extractSiteCode(line){
+  let t=line.trim();
+  if(t.startsWith("*")) t=t.slice(1);
+  const m=t.match(/^([^\s(*]+)/);
+  return m?uc(m[1].replace(/\*+$/,"")):"";
 }
-
-function parseTag(tagPart) {
-  const code = extractSiteCode(tagPart);
-  const parts = [...tagPart.matchAll(/\(([^)]*)\)/g)].map(m => m[1]);
-
-  let power = "";
-  let terminals = "";
-  let order = "power-first";
-
-  if (parts.length === 1) {
-    if (/^\d+T/i.test(parts[0])) {
-      terminals = parts[0];
-      order = "term-first";
-    } else {
-      power = parts[0];
-      order = "power-first";
-    }
-  } else if (parts.length >= 2) {
-    if (/^\d+T/i.test(parts[0]) && !/^\d+T/i.test(parts[1])) {
-      terminals = parts[0];
-      power = parts[1];
-      order = "term-first";
-    } else {
-      power = parts[0];
-      terminals = parts[1];
-      order = "power-first";
-    }
+function parseTag(tagPart){
+  const code=extractSiteCode(tagPart);
+  const balanced=[...tagPart.matchAll(/\(([^)]*)\)/g)].map(m=>m[1]);
+  const unclosed=tagPart.match(/\(([^)]+)$/);
+  const parts=unclosed?[...balanced,unclosed[1]]:balanced;
+  let power="",terminals="",order="power-first";
+  if(parts.length===1){
+    if(/^\d+T/i.test(parts[0])){terminals=parts[0];order="term-first";}
+    else power=parts[0];
+  }else if(parts.length>=2){
+    if(/^\d+T/i.test(parts[0])&&!/^\d+T/i.test(parts[1])){
+      terminals=parts[0];power=parts[1];order="term-first";
+    }else{power=parts[0];terminals=parts[1];}
   }
-
-  return { code, power, terminals, order };
+  return{code,power,terminals,order};
 }
-
-function buildTag({ code, power, terminals, order }) {
-  let t = uc(code);
-  if (order === "term-first" && terminals && power) {
-    t += `(${terminals})(${power})`;
-  } else if (order === "term-first" && terminals && !power) {
-    t += `(${terminals})`;
-  } else if (power && terminals) {
-    t += `(${power})(${terminals})`;
-  } else if (power) {
-    t += `(${power})`;
-  } else if (terminals) {
-    t += `(${terminals})`;
-  }
+function buildTag({code,power,terminals,order}){
+  let t=uc(code);
+  if(order==="term-first"&&terminals&&power) t+=`(${terminals})(${power})`;
+  else if(order==="term-first"&&terminals) t+=`(${terminals})`;
+  else if(power&&terminals) t+=`(${power})(${terminals})`;
+  else if(power) t+=`(${power})`;
+  else if(terminals) t+=`(${terminals})`;
   return t;
 }
-
-function extractLineMeta(line, category) {
-  const dt = extractDateTimeFromLine(line);
-  const idx = dt ? line.indexOf(dt) : -1;
-
-  const tagPart = idx > -1 ? line.slice(0, idx).trim() : line.trim();
-  const tagMeta = parseTag(tagPart);
-
-  let tt = "";
-  let alarm = "";
-  let comment = "";
-  let after = idx > -1 ? line.slice(idx + dt.length).trim() : "";
-
-  if (after.startsWith("-")) after = after.slice(1).trim();
-
-  // TT
-  let rest = after;
-  let m = after.match(/^(\*\*|\*[^*]+\*|TT-[A-Z0-9-]+(?:\s*-\s*Manual TT)?)\s*-\s*(.*)$/i);
-  if (!m) m = after.match(/^(\*\*|\*[^*]+\*|TT-[A-Z0-9-]+(?:\s*-\s*Manual TT)?)\s+(.*)$/i);
-  if (m) {
-    tt = m[1];
-    rest = m[2];
-  }
-
-  if (category === "blocked") {
-    const parts = rest.split(" - ");
-    if (parts.length >= 2) {
-      alarm = parts[0].trim();
-      comment = parts.slice(1).join(" - ").trim();
-    } else {
-      comment = rest.trim();
-    }
-  } else {
-    comment = rest.trim();
-  }
-
-  return {
-    code: tagMeta.code,
-    power: tagMeta.power,
-    terminals: tagMeta.terminals,
-    order: tagMeta.order,
-    dateTime: dt,
-    tt,
-    alarm,
-    comment
-  };
+function extractLineMeta(line,category){
+  const dt=extractDateTimeFromLine(line);
+  const idx=dt?line.indexOf(dt):-1;
+  const tagPart=(idx>-1?line.slice(0,idx):line).trim();
+  const tagMeta=parseTag(tagPart);
+  let tt="",alarm="",comment="";
+  let after=idx>-1?line.slice(idx+dt.length).trim():"";
+  if(after.startsWith("-")) after=after.slice(1).trim();
+  let rest=after;
+  let m=after.match(/^(\*\*|\*[^*]+\*|TT-[A-Z0-9-]+(?:\s*-\s*Manual TT)?)\s*-\s*(.*)$/i);
+  if(!m) m=after.match(/^(\*\*|\*[^*]+\*|TT-[A-Z0-9-]+(?:\s*-\s*Manual TT)?)\s+(.*)$/i);
+  if(m){tt=m[1];rest=m[2];}
+  if(category==="blocked"){
+    const parts=rest.split(" - ");
+    if(parts.length>=2){alarm=parts[0].trim();comment=parts.slice(1).join(" - ").trim();}
+    else comment=rest.trim();
+  }else comment=rest.trim();
+  return{code:tagMeta.code,power:tagMeta.power,terminals:tagMeta.terminals,
+         order:tagMeta.order,dateTime:dt,tt,alarm,comment};
+}
+function buildLine(meta,category){
+  const tag=`*${buildTag(meta)}*`;
+  let line=tag;
+  if(meta.dateTime) line+=` ${meta.dateTime}`;
+  if(meta.tt) line+=` - ${meta.tt}`;
+  else if(category!=="special") line+=` - **`;
+  if(category==="blocked") line+=` - ${meta.alarm||""} - ${meta.comment||""}`;
+  else line+=` - ${meta.comment||""}`;
+  return line.replace(/\s+-\s+$/,"").trim();
 }
 
-function buildLine(meta, category) {
-  const tag = `*${buildTag(meta)}*`;
-  let line = tag;
-
-  if (meta.dateTime) line += ` ${meta.dateTime}`;
-
-  if (meta.tt) line += ` - ${meta.tt}`;
-  else if (category !== "special") line += ` - **`;
-
-  if (category === "blocked") {
-    line += ` - ${meta.alarm || ""} - ${meta.comment || ""}`;
-  } else {
-    line += ` - ${meta.comment || ""}`;
-  }
-
-  return line.replace(/\s+-\s+$/, "").trim();
-}
-
-// ============================
+// ═══════════════════════════════════════════════════
 // HEADER DETECTION
-// ============================
-
-function isHeaderOrSeparator(line) {
-  const t = line.trim();
-  if (!t) return true;
-  if (/^[-]{3,}$/.test(t)) return true;
-
-  if (/^\*?Daily Sites Down\/Blocked/i.test(t)) return true;
-  if (/^\*?Old Pending Sites Down/i.test(t)) return true;
-
-  if (/^(\*?)Power\s*[Ii]ssues?:\s*\d/i.test(t)) return true;
-  if (/^(\*?)Access\s*[Ii]ssues?:\s*\d/i.test(t)) return true;
-  if (/^(\*?)DG\s*[Ii]ssues?:\s*\d/i.test(t)) return true;
-  if (/^(\*?)3rd\s*Party\s*[Ii]ssues?:\s*\d/i.test(t)) return true;
-  if (/^(\*?)Blocked\s*Sites?\s*:?\s*\d/i.test(t)) return true;
-  if (/^(\*?)Temperature\s*[Ii]ssues?:\s*\d/i.test(t)) return true;
-  if (/^(\*?)Fiber\s*[Ii]ssues?:\s*\d/i.test(t)) return true;
-  if (/^(\*?)Transmission\s*[Ii]ssues?:\s*\d/i.test(t)) return true;
-
-  // STRICT special header only
-  if (/^\*?Temporary Dismantling\/Under Relocation\/Under Renovation\/Under Dismantling\/Under Vandalism:\s*\d+\*?$/i.test(t)) return true;
-
+// ═══════════════════════════════════════════════════
+function isHeaderOrSeparator(line){
+  const t=line.trim();
+  if(!t) return true;
+  if(/^[-]{3,}$/.test(t)) return true;
+  if(/^\*?Daily Sites Down\/Blocked/i.test(t)) return true;
+  if(/^\*?Old Pending Sites Down/i.test(t)) return true;
+  if(/^(\*?)Power\s*[Ii]ssues?:\s*\d/i.test(t)) return true;
+  if(/^(\*?)Access\s*[Ii]ssues?:\s*\d/i.test(t)) return true;
+  if(/^(\*?)DG\s*[Ii]ssues?:\s*\d/i.test(t)) return true;
+  if(/^(\*?)3rd\s*Party\s*[Ii]ssues?:\s*\d/i.test(t)) return true;
+  if(/^(\*?)Blocked\s*Sites?\s*:?\s*\d/i.test(t)) return true;
+  if(/^(\*?)Temperature\s*[Ii]ssues?:\s*\d/i.test(t)) return true;
+  if(/^(\*?)Fiber\s*[Ii]ssues?:\s*\d/i.test(t)) return true;
+  if(/^(\*?)Transmission\s*[Ii]ssues?:\s*\d/i.test(t)) return true;
+  if(/^\*?Temporary Dismantling\/Under Relocation\/Under Renovation\/Under Dismantling\/Under Vandalism:\s*\d+\*?$/i.test(t)) return true;
   return false;
 }
 
-// ============================
+// ═══════════════════════════════════════════════════
 // IMPORT
-// ============================
-
-function importSummary() {
-  const text = document.getElementById("importText").value;
-  if (!text.trim()) { notify("Paste summary first."); return; }
-
-  const lines = text.split("\n");
-  const imported = [];
-  let section = "daily";
-  let category = "power";
-  const orderCounters = {};
-
-  for (const raw of lines) {
-    const line = raw.trimEnd();
-    if (!line.trim()) continue;
-
-    if (/Daily Sites Down\/Blocked/i.test(line)) { section = "daily"; continue; }
-    if (/Old Pending Sites Down/i.test(line)) { section = "old"; continue; }
-
-    if (/^(\*?)DG\s*[Ii]ssues?:/i.test(line.trim())) { category = "dg"; continue; }
-    if (/^(\*?)Power\s*[Ii]ssues?:/i.test(line.trim())) { category = "power"; continue; }
-    if (/^(\*?)Temperature\s*[Ii]ssues?:/i.test(line.trim())) { category = "temperature"; continue; }
-    if (/^(\*?)3rd\s*Party\s*[Ii]ssues?:/i.test(line.trim())) { category = "thirdparty"; continue; }
-    if (/^(\*?)Fiber\s*[Ii]ssues?:/i.test(line.trim())) { category = "fiber"; continue; }
-    if (/^(\*?)Transmission\s*[Ii]ssues?:/i.test(line.trim())) { category = "transmission"; continue; }
-    if (/^(\*?)Access\s*[Ii]ssues?:/i.test(line.trim())) { category = "access"; continue; }
-    if (/^(\*?)Blocked\s*Sites?\s*:?\s*\d/i.test(line.trim())) { category = "blocked"; continue; }
-    if (/^\*?Temporary Dismantling\/Under Relocation\/Under Renovation\/Under Dismantling\/Under Vandalism:\s*\d+\*?$/i.test(line.trim())) { category = "special"; continue; }
-
-    if (isHeaderOrSeparator(line)) continue;
-
-    const code = extractSiteCode(line);
-    if (!code) continue;
-
-    const key = section + "_" + category;
-    if (!orderCounters[key]) orderCounters[key] = 0;
-
-    imported.push({
-      id: makeId(),
-      code,
-      originalLine: line,
-      section,
-      category,
-      importOrder: orderCounters[key]++,
-      pinTime: 0
-    });
+// ═══════════════════════════════════════════════════
+function importSummary(){
+  const text=document.getElementById("importText").value;
+  if(!text.trim()){notify("Paste summary first.");return;}
+  const lines=text.split("\n");
+  const imported=[];
+  let section="daily",category="power";
+  const orderCounters={};
+  for(const raw of lines){
+    const line=raw.trimEnd();
+    if(!line.trim()) continue;
+    if(/Daily Sites Down\/Blocked/i.test(line)){section="daily";continue;}
+    if(/Old Pending Sites Down/i.test(line)){section="old";continue;}
+    if(/^(\*?)DG\s*[Ii]ssues?:/i.test(line.trim())){category="dg";continue;}
+    if(/^(\*?)Power\s*[Ii]ssues?:/i.test(line.trim())){category="power";continue;}
+    if(/^(\*?)Temperature\s*[Ii]ssues?:/i.test(line.trim())){category="temperature";continue;}
+    if(/^(\*?)3rd\s*Party\s*[Ii]ssues?:/i.test(line.trim())){category="thirdparty";continue;}
+    if(/^(\*?)Fiber\s*[Ii]ssues?:/i.test(line.trim())){category="fiber";continue;}
+    if(/^(\*?)Transmission\s*[Ii]ssues?:/i.test(line.trim())){category="transmission";continue;}
+    if(/^(\*?)Access\s*[Ii]ssues?:/i.test(line.trim())){category="access";continue;}
+    if(/^(\*?)Blocked\s*Sites?\s*:?\s*\d/i.test(line.trim())){category="blocked";continue;}
+    if(/^\*?Temporary Dismantling\/Under Relocation\/Under Renovation\/Under Dismantling\/Under Vandalism:\s*\d+\*?$/i.test(line.trim())){category="special";continue;}
+    if(isHeaderOrSeparator(line)) continue;
+    const code=extractSiteCode(line);
+    if(!code) continue;
+    const key=section+"_"+category;
+    if(!orderCounters[key]) orderCounters[key]=0;
+    imported.push({id:makeId(),code,originalLine:line,section,category,
+                   importOrder:orderCounters[key]++,pinTime:0});
   }
-
-  state.sites = imported;
-  state.importedRawText = text;
-  state.dirty = false;
+  state.sites=imported;state.importedRawText=text;state.dirty=false;
   saveState();
-
-  document.getElementById("importResult").innerHTML =
+  document.getElementById("importResult").innerHTML=
     `<div class="result-box"><div class="result-added">✅ Imported ${imported.length} lines.</div></div>`;
-  renderSites();
-  notify("Summary imported.");
+  renderSites();notify("Summary imported.");
 }
 
-// ============================
+// ═══════════════════════════════════════════════════
 // ALARM DETECTION
-// ============================
-
-function isPowerAlarm(text) {
-  const t = (text || "").toLowerCase();
-  return POWER_ALARMS.some(a => t.includes(a.toLowerCase()));
+// ═══════════════════════════════════════════════════
+function isPowerAlarm(text){
+  const t=(text||"").toLowerCase();
+  return POWER_ALARMS.some(a=>t.includes(a.toLowerCase()));
 }
-
-function isTempAlarm(text) {
-  const t = (text || "").toLowerCase();
-  if (/high temperature over\s*\d+\s*c/i.test(text || "")) return true;
-  return TEMP_ALARMS_FIXED.some(a => t.includes(a.toLowerCase()));
+function isTempAlarm(text){
+  if(/high temperature over\s*\d+\s*c/i.test(text||"")) return true;
+  const t=(text||"").toLowerCase();
+  return TEMP_ALARMS_FIXED.some(a=>t.includes(a.toLowerCase()));
 }
-
-function detectCategoryFromAlarm(alarmText, powerType, isDirect) {
-  const p = uc(powerType);
-
-  if (p.includes("DG")) {
-    if (isDirect) return "dg";
-    if (isTempAlarm(alarmText)) return "temperature";
-    return "dg";
-  }
-
-  if (p.includes("SHARED")) return "thirdparty";
-  if (isTempAlarm(alarmText)) return "temperature";
-  if (isPowerAlarm(alarmText)) return "power";
+function detectCategoryFromAlarm(alarmText,powerType,isDirect){
+  const p=uc(powerType);
+  if(p.includes("DG")) return isDirect?"dg":isTempAlarm(alarmText)?"temperature":"dg";
+  if(p.includes("SHARED")) return "thirdparty";
+  if(isTempAlarm(alarmText)) return "temperature";
+  return "power";
+}
+function detectCategoryFromMemory(code,powerType,isDirect){
+  const mem=alarmMem[uc(code)];
+  if(mem?.alarmText) return detectCategoryFromAlarm(mem.alarmText,powerType,isDirect);
+  const p=uc(powerType);
+  if(p.includes("DG")) return "dg";
+  if(p.includes("SHARED")) return "thirdparty";
   return "power";
 }
 
-function detectCategoryFromMemory(code, powerType, isDirect) {
-  const mem = alarmMem[uc(code)];
-  if (mem && mem.alarmText) return detectCategoryFromAlarm(mem.alarmText, powerType, isDirect);
-  const p = uc(powerType);
-  if (p.includes("DG")) return "dg";
-  if (p.includes("SHARED")) return "thirdparty";
-  return "power";
+// ═══════════════════════════════════════════════════
+// ALARM INPUT PARSING
+// ═══════════════════════════════════════════════════
+function parseAlarmInputLine(line){
+  let c=line.replace(/\*/g,"").trim();
+  const firstCode=c.match(/^([A-Za-z]{2,4}\d{2,4}[A-Za-z]?(?:\/[A-Za-z](?:\/[A-Za-z])?)?)/i);
+  if(firstCode) c=uc(firstCode[1])+c.slice(firstCode[1].length);
+  const code=extractSiteCode(c);
+  if(!code) return null;
+  const afterCode=c.slice(code.length);
+  const parts=[...afterCode.matchAll(/\(([^)]*)\)/g)].map(m=>m[1]);
+  let power="",terminals="",order="power-first";
+  if(parts.length===1){
+    if(/^\d+T/i.test(parts[0])){terminals=parts[0];order="term-first";}
+    else power=parts[0];
+  }else if(parts.length>=2){
+    if(/^\d+T/i.test(parts[0])&&!/^\d+T/i.test(parts[1])){
+      terminals=parts[0];power=parts[1];order="term-first";
+    }else{power=parts[0];terminals=parts[1];}
+  }
+  let alarm="";
+  if(/\/\/Cells Blocking/i.test(c)){
+    const after=c.replace(code,"").replace(/\([^)]+\)/g,"").trim();
+    alarm=after.replace(/\/\/Cells Blocking/i,"").trim();
+  }
+  const textAfterTag=c.replace(code,"").replace(/\([^)]+\)/g,"").replace(/\/\/Cells Blocking/i,"").trim();
+  return{code,power,terminals,order,alarm,textAfterTag,raw:c};
 }
 
-function parseAlarmInputLine(line) {
-  let c = line.replace(/\*/g, "").trim();
-
-  const firstCode = c.match(/^([A-Za-z]{2,4}\d{2,4}[A-Za-z]?(?:\/[A-Za-z](?:\/[A-Za-z])?)?)/i);
-  if (firstCode) c = uc(firstCode[1]) + c.slice(firstCode[1].length);
-
-  const code = extractSiteCode(c);
-  if (!code) return null;
-
-  const afterCode = c.slice(code.length);
-  const parts = [...afterCode.matchAll(/\(([^)]*)\)/g)].map(m => m[1]);
-
-  let power = "";
-  let terminals = "";
-  let order = "power-first";
-
-  if (parts.length === 1) {
-    if (/^\d+T/i.test(parts[0])) { terminals = parts[0]; order = "term-first"; }
-    else { power = parts[0]; order = "power-first"; }
-  } else if (parts.length >= 2) {
-    if (/^\d+T/i.test(parts[0]) && !/^\d+T/i.test(parts[1])) {
-      terminals = parts[0]; power = parts[1]; order = "term-first";
-    } else {
-      power = parts[0]; terminals = parts[1]; order = "power-first";
-    }
+// ═══════════════════════════════════════════════════
+// FIX: DETECT ALL CLEARED / UNBLOCKED VARIATIONS
+// Matches: cleared, cleared unblocked, cleared unblocking,
+// cleared // cells unblocked, cleared //cells unblocking, etc
+// ═══════════════════════════════════════════════════
+function isClearedLine(line){
+  const t=(line||"").replace(/\*/g,"").trim();
+  // All variations of cleared/unblocked
+  if(/cleared\s*(\/\/\s*)?cells?\s*unblock/i.test(t)) return true;
+  if(/cleared\s*unblock/i.test(t)) return true;
+  if(/cleared\s*$/i.test(t)) return true;
+  // After removing site code and parens, check if remaining is just "cleared ..."
+  const code=extractSiteCode(t);
+  if(code){
+    const rest=t.slice(code.length).replace(/\([^)]+\)/g,"").trim();
+    if(/^cleared/i.test(rest)) return true;
   }
-
-  let alarm = "";
-  if (/\/\/Cells Blocking/i.test(c)) {
-    const after = c.replace(code, "").replace(/\([^)]+\)/g, "").trim();
-    alarm = after.replace(/\/\/Cells Blocking/i, "").trim();
-  }
-
-  const textAfterTag = c.replace(code, "").replace(/\([^)]+\)/g, "").replace(/\/\/Cells Blocking/i, "").trim();
-
-  return { code, power, terminals, order, alarm, textAfterTag, raw: c };
+  return false;
 }
 
-// ============================
-// PENDING ACTIONS
-// ============================
+function extractClearedCode(line){
+  const t=(line||"").replace(/\*/g,"").trim();
+  return extractSiteCode(t);
+}
 
-function preparePendingActions() {
-  const text = document.getElementById("alarmText").value;
-  if (!text.trim()) { notify("Paste alarms first."); return; }
+// ═══════════════════════════════════════════════════
+// DEDUP ALARM LINES
+// ═══════════════════════════════════════════════════
+function deduplicateAlarmLines(lines){
+  const seen={},result=[];
+  for(const line of lines){
+    const t=line.trim();
+    if(!t){result.push(line);continue;}
+    const isBlocking=/\/\/Cells Blocking/i.test(t);
+    const parsed=parseAlarmInputLine(t);
+    if(!parsed){result.push(line);continue;}
+    const code=uc(parsed.code);
+    const namedCodes=extractTerminalCodes(`*${parsed.code}(${parsed.terminals})*`);
+    const key=code+(isBlocking?"_B":"_D");
+    if(!seen[key]){
+      seen[key]={idx:result.length,namedCount:namedCodes.length};
+      result.push(line);
+    }else{
+      if(namedCodes.length>seen[key].namedCount){
+        result[seen[key].idx]=line;
+        seen[key].namedCount=namedCodes.length;
+      }
+    }
+  }
+  return result.filter(l=>l!==undefined);
+}
 
-  const lines = text.split("\n");
-  const defaultCat = document.getElementById("alarmCategory").value;
-  const defaultDT = localInputToDisplay(document.getElementById("alarmDateTime").value);
+// ═══════════════════════════════════════════════════
+// SMART TERMINAL CLEANUP FOR BLOCKED
+// ═══════════════════════════════════════════════════
+function cleanBlockedTerminalsSmart(terminals,power,allBlockedCodes){
+  if(!terminals) return "";
+  if(/\/VIP/i.test(power||"")) return(terminals.match(/^(\d+T)/i)||[""])[0];
+  if(/_VIP\b/i.test(terminals)) return terminals.replace(/_VIP\b/i,"/VIP");
+  const countStr=(terminals.match(/^(\d+T)/i)||[""])[0];
+  const codesStr=terminals.replace(/^\d+T_?/i,"");
+  const termCodes=codesStr.split(/[,_]/).map(s=>uc(s.trim())).filter(s=>
+    s&&!/^\d/.test(s)&&!["OH","4G","3G","2G","VIP"].includes(s)
+  );
+  const keepCodes=termCodes.filter(tc=>!allBlockedCodes.includes(uc(tc)));
+  if(!keepCodes.length) return countStr;
+  return countStr+keepCodes.join(",");
+}
 
-  pendingActions = [];
-  let i = 0;
+// ═══════════════════════════════════════════════════
+// CHECK IF TERMINAL INSIDE BLOCKED HUB
+// ═══════════════════════════════════════════════════
+function isTerminalInsideBlockedHub(code,pendingBlockedMap){
+  const inState=state.sites.some(s=>{
+    if(s.category!=="blocked") return false;
+    return extractTerminalCodes(s.originalLine).includes(uc(code));
+  });
+  if(inState) return true;
+  if(pendingBlockedMap){
+    for(const[hubCode,termCodes] of Object.entries(pendingBlockedMap)){
+      if(uc(hubCode)===uc(code)) continue;
+      if(termCodes.includes(uc(code))) return true;
+    }
+  }
+  return false;
+}
 
-  while (i < lines.length) {
-    const cur = lines[i].trim();
-    if (!cur) { i++; continue; }
+// ═══════════════════════════════════════════════════
+// FLAP
+// ═══════════════════════════════════════════════════
+function markRestore(code){
+  const k=uc(code),t=todayKey();
+  if(!flapMem[k]||flapMem[k].date!==t) flapMem[k]={date:t,count:1};
+  else flapMem[k].count++;
+}
+function isFlapNow(code){
+  const k=uc(code),t=todayKey();
+  return flapMem[k]&&flapMem[k].date===t&&flapMem[k].count>=2;
+}
+function powerFamily(power){
+  const p=uc(power);
+  if(p.includes("DG")) return "DG";
+  if(p.includes("MEW")) return "MEW";
+  if(p.includes("SHARED")) return "SHARED";
+  return "";
+}
+function addFlapToPower(power,shouldFlap){
+  if(!shouldFlap) return power;
+  if(!power) return "Flap";
+  if(/\/Flap/i.test(power)) return power;
+  return power+"/Flap";
+}
 
-    // restore
-    if (/restored/i.test(cur)) {
-      const code = extractSiteCode(cur.replace(/\*/g, ""));
-      if (code) pendingActions.push({ id: makeId(), type: "restore", code });
-      i++; continue;
+// ═══════════════════════════════════════════════════
+// LINE BUILDERS
+// ═══════════════════════════════════════════════════
+function buildNewDownLine(parsed,dateTime,finalCategory,shouldFlap){
+  return buildLine({
+    code:parsed.code,
+    power:addFlapToPower(parsed.power||"",shouldFlap||finalCategory==="temperature"),
+    terminals:parsed.terminals||"",order:parsed.order||"power-first",
+    dateTime,tt:"**",comment:"Team on the way to the site."
+  },finalCategory);
+}
+
+// ═══════════════════════════════════════════════════
+// PREPARE PENDING ACTIONS
+// ═══════════════════════════════════════════════════
+function preparePendingActions(){
+  const text=document.getElementById("alarmText").value;
+  if(!text.trim()){notify("Paste alarms first.");return;}
+
+  const defaultCat=document.getElementById("alarmCategory").value;
+  const defaultDT=localInputToDisplay(document.getElementById("alarmDateTime").value);
+
+  const rawLines=text.split("\n");
+  const lines=deduplicateAlarmLines(rawLines);
+
+  pendingActions=[];
+  let i=0;
+
+  while(i<lines.length){
+    const cur=lines[i].trim();
+    if(!cur){i++;continue;}
+
+    // ── FIX: Detect ALL cleared/unblocked variations FIRST ──
+    if(isClearedLine(cur)){
+      const code=extractClearedCode(cur);
+      if(code){
+        pendingActions.push({id:makeId(),type:"unblock",code:uc(code),raw:cur});
+        i++;continue;
+      }
     }
 
-    // cleared unblocked
-    if (/cleared\s*unblocked/i.test(cur)) {
-      const code = uc(cur.replace(/\*/g, "").replace(/cleared\s*unblocked/i, "").trim().split(/\s/)[0]);
-      if (code) pendingActions.push({ id: makeId(), type: "unblock", code });
-      i++; continue;
+    // ── hub-only restore ──
+    if(/only\s*hub\s*(is\s*)?(restored|cleared)/i.test(cur)){
+      const parsed=parseAlarmInputLine(cur);
+      if(parsed?.code){
+        pendingActions.push({id:makeId(),type:"hubOnlyRestore",code:parsed.code,raw:cur});
+        i++;continue;
+      }
     }
 
-    // blocked
-    if (/\/\/Cells Blocking/i.test(cur)) {
-      const parsed = parseAlarmInputLine(cur);
-      if (parsed) {
+    // ── full restore ──
+    if(/restored/i.test(cur)&&!/only\s*hub/i.test(cur)){
+      const code=extractSiteCode(cur.replace(/\*/g,""));
+      if(code){pendingActions.push({id:makeId(),type:"restore",code});i++;continue;}
+    }
+
+    // ── blocked (//Cells Blocking) ──
+    if(/\/\/Cells Blocking/i.test(cur)){
+      const parsed=parseAlarmInputLine(cur);
+      if(parsed){
         pendingActions.push({
-          id: makeId(),
-          type: "blocked",
-          parsed,
-          category: defaultCat === "auto" ? "auto" : defaultCat,
-          dateTime: defaultDT,
-          raw: cur
+          id:makeId(),type:"blocked",parsed,
+          category:defaultCat==="auto"?"auto":defaultCat,
+          dateTime:defaultDT,raw:cur
         });
       }
-      i++; continue;
+      i++;continue;
     }
 
-    // down
-    const isDown = /Site\s*(direct\s*)?Down/i.test(cur) ||
-                   /Hub\s*and\s*Terminals?\s*(are\s*)?(direct\s*)?Down/i.test(cur) ||
-                   /Only\s*hub\s*is?\s*(direct\s*)?down/i.test(cur);
-
-    if (isDown) {
-      const parsed = parseAlarmInputLine(cur);
-      if (parsed) {
+    // ── site down ──
+    const isDown=/Site\s*(direct\s*)?Down/i.test(cur)||
+                 /Hub\s*and\s*Terminals?\s*(are\s*)?(direct\s*)?Down/i.test(cur)||
+                 /Only\s*hub\s*is?\s*(direct\s*)?down/i.test(cur);
+    if(isDown){
+      const parsed=parseAlarmInputLine(cur);
+      if(parsed){
         pendingActions.push({
-          id: makeId(),
-          type: "down",
-          parsed,
-          category: defaultCat === "auto" ? "auto" : defaultCat,
-          dateTime: defaultDT,
-          isDirect: /direct/i.test(cur),
-          isHubDown: /Hub\s*and\s*Terminals?/i.test(cur) || /Only\s*hub/i.test(cur),
-          raw: cur
+          id:makeId(),type:"down",parsed,
+          category:defaultCat==="auto"?"auto":defaultCat,
+          dateTime:defaultDT,
+          isDirect:/direct/i.test(cur),
+          isHubDown:/Hub\s*and\s*Terminals?/i.test(cur)||/Only\s*hub/i.test(cur),
+          raw:cur
         });
       }
-      i++; continue;
+      i++;continue;
     }
 
-    // remembered alarm
-    const parsed = parseAlarmInputLine(cur);
-    if (parsed && parsed.code && parsed.textAfterTag && (isPowerAlarm(parsed.textAfterTag) || isTempAlarm(parsed.textAfterTag))) {
+    // ── remembered alarm ──
+    const parsed=parseAlarmInputLine(cur);
+    if(parsed?.code&&parsed.textAfterTag&&
+       (isPowerAlarm(parsed.textAfterTag)||isTempAlarm(parsed.textAfterTag))){
       pendingActions.push({
-        id: makeId(),
-        type: "rememberAlarm",
-        code: parsed.code,
-        alarmText: parsed.textAfterTag,
-        raw: cur
+        id:makeId(),type:"rememberAlarm",
+        code:parsed.code,alarmText:parsed.textAfterTag,raw:cur
       });
-      i++; continue;
+      i++;continue;
     }
 
-    // code + update line
-    const codeOnly = extractSiteCode(cur);
-    if (codeOnly && i + 1 < lines.length && lines[i+1].trim()) {
-      const next = lines[i+1].trim();
-      // Avoid wrongly capturing another alarm as update body
-      if (!/^\*?[A-Za-z]{2,4}\d{2,4}/.test(next)) {
-        pendingActions.push({
-          id: makeId(),
-          type: "updateComment",
-          code: uc(codeOnly),
-          comment: next
-        });
-        i += 2; continue;
+    // ── comment update ──
+    const codeOnly=extractSiteCode(cur);
+    if(codeOnly&&i+1<lines.length&&lines[i+1].trim()){
+      const next=lines[i+1].trim();
+      if(!/^\*?[A-Za-z]{2,4}\d{2,4}/.test(next)){
+        pendingActions.push({id:makeId(),type:"updateComment",code:uc(codeOnly),comment:next});
+        i+=2;continue;
       }
     }
 
-    pendingActions.push({ id: makeId(), type: "ignored", raw: cur });
+    pendingActions.push({id:makeId(),type:"ignored",raw:cur});
     i++;
+  }
+
+  // ═══════════════════════════════════════════════════
+  // FIX: CANCEL OUT blocked+cleared for same site
+  // If site appears as both "blocked" and "unblock" in same batch,
+  // remove BOTH — they cancel each other out
+  // ═══════════════════════════════════════════════════
+  const blockedCodes=new Set();
+  const clearedCodes=new Set();
+
+  pendingActions.forEach(a=>{
+    if(a.type==="blocked") blockedCodes.add(uc(a.parsed.code));
+    if(a.type==="unblock") clearedCodes.add(uc(a.code));
+  });
+
+  // Find codes that appear in BOTH blocked and cleared
+  const cancelledCodes=new Set();
+  clearedCodes.forEach(code=>{
+    if(blockedCodes.has(code)) cancelledCodes.add(code);
+  });
+
+  if(cancelledCodes.size>0){
+    // Remove cancelled actions and replace with "cancelled" type
+    const newActions=[];
+    const cancelledAlready=new Set();
+
+    pendingActions.forEach(a=>{
+      const actionCode=a.type==="blocked"?uc(a.parsed.code):
+                       a.type==="unblock"?uc(a.code):null;
+
+      if(actionCode&&cancelledCodes.has(actionCode)){
+        // Only add ONE cancelled notice per code
+        if(!cancelledAlready.has(actionCode)){
+          cancelledAlready.add(actionCode);
+
+          // Check if this site exists in current summary as blocked
+          const existsInSummary=state.sites.some(s=>
+            uc(s.code)===actionCode&&s.category==="blocked"
+          );
+
+          if(existsInSummary){
+            // Site was already in summary → clear still applies (remove from summary)
+            newActions.push({id:makeId(),type:"unblock",code:actionCode,
+                            raw:`${actionCode} — cleared (was already in summary)`});
+          }else{
+            // Site was NOT in summary → both cancel out completely
+            newActions.push({id:makeId(),type:"cancelled",code:actionCode,
+                            raw:`${actionCode} — blocked then cleared in same batch, cancelled`});
+          }
+        }
+        // Skip the original action
+      }else{
+        newActions.push(a);
+      }
+    });
+
+    pendingActions=newActions;
   }
 
   renderPendingActions();
 }
 
-function renderPendingActions() {
-  const box = document.getElementById("alarmResult");
-  if (!pendingActions.length) {
-    box.innerHTML = `<div class="result-box"><div class="result-ignored">No valid actions detected.</div></div>`;
+// ═══════════════════════════════════════════════════
+// RENDER PENDING
+// ═══════════════════════════════════════════════════
+function renderPendingActions(){
+  const box=document.getElementById("alarmResult");
+  if(!pendingActions.length){
+    box.innerHTML=`<div class="result-box"><div class="result-ignored">No valid actions detected.</div></div>`;
     return;
   }
-
-  let html = `<div class="result-box">`;
-
-  pendingActions.forEach(a => {
-    if (a.type === "down" || a.type === "blocked") {
-      html += `
+  let html=`<div class="result-box">`;
+  pendingActions.forEach(a=>{
+    if(a.type==="down"||a.type==="blocked"){
+      html+=`
         <div class="pending-item">
           <div class="pending-head">
-            <div class="pending-code">${escapeHtml(a.parsed.code)} - ${a.type.toUpperCase()}</div>
-            <div class="badge">${escapeHtml(a.raw)}</div>
+            <div class="pending-code">${escapeHtml(a.parsed.code)} — ${a.type.toUpperCase()}</div>
           </div>
           <div class="pending-grid">
             <div>
@@ -892,580 +920,465 @@ function renderPendingActions() {
             </div>
           </div>
           <div class="pending-meta">${escapeHtml(a.raw)}</div>
-        </div>
-      `;
-    } else {
-      let cls = "result-ignored";
-      if (a.type === "rememberAlarm") cls = "result-alarm";
-      if (a.type === "restore" || a.type === "unblock") cls = "result-removed";
-      if (a.type === "updateComment") cls = "result-updated";
-
-      let label = "";
-      if (a.type === "rememberAlarm") label = `${a.code} - alarm remembered: ${a.alarmText}`;
-      else if (a.type === "restore") label = `${a.code} - restore`;
-      else if (a.type === "unblock") label = `${a.code} - cleared unblocked`;
-      else if (a.type === "updateComment") label = `${a.code} - update comment`;
-      else label = `${a.raw} - ignored`;
-
-      html += `<div class="${cls}" style="margin-bottom:8px;">${escapeHtml(label)}</div>`;
+        </div>`;
+    }else{
+      let cls="result-ignored",label="";
+      if(a.type==="rememberAlarm"){cls="result-alarm";label=`${a.code} — alarm remembered: ${a.alarmText}`;}
+      else if(a.type==="restore"){cls="result-removed";label=`${a.code} — restore`;}
+      else if(a.type==="unblock"){cls="result-removed";label=`${a.code} — cleared/unblocked`;}
+      else if(a.type==="updateComment"){cls="result-updated";label=`${a.code} — update comment`;}
+      else if(a.type==="hubOnlyRestore"){cls="result-moved";label=`${a.code} — hub only restore`;}
+      else if(a.type==="cancelled"){cls="result-cancelled";label=`${a.code} — blocked+cleared cancel out, skipped`;}
+      else label=`${a.raw||"?"} — ignored`;
+      html+=`<div class="${cls}" style="margin-bottom:8px;">${escapeHtml(label)}</div>`;
     }
   });
-
-  html += `
+  html+=`
     <div style="margin-top:12px;">
       <button class="btn btn-primary" onclick="applyPendingActions()">✅ Apply Pending</button>
       <button class="btn btn-secondary" onclick="clearPendingActions()">🗑️ Clear Pending</button>
-    </div>
-  `;
-  html += `</div>`;
-  box.innerHTML = html;
+    </div></div>`;
+  box.innerHTML=html;
 }
 
-function clearPendingActions() {
-  pendingActions = [];
-  document.getElementById("alarmResult").innerHTML = "";
+function clearPendingActions(){
+  pendingActions=[];
+  document.getElementById("alarmResult").innerHTML="";
 }
 
-// ============================
-// APPLY ACTIONS
-// ============================
+// ═══════════════════════════════════════════════════
+// APPLY PENDING
+// ═══════════════════════════════════════════════════
+function applyPendingActions(){
+  if(!pendingActions.length) return;
+  const results=[];
 
-function applyPendingActions() {
-  if (!pendingActions.length) return;
-
-  const results = [];
-
-  pendingActions.forEach(a => {
-    if (a.type === "down" || a.type === "blocked") {
-      const catEl = document.getElementById(`pending-cat-${a.id}`);
-      const dtEl = document.getElementById(`pending-dt-${a.id}`);
-      if (catEl) a.category = catEl.value;
-      if (dtEl) a.dateTime = localInputToDisplay(dtEl.value || displayToLocalInput(a.dateTime));
+  const blockedActions=[],otherActions=[];
+  pendingActions.forEach(a=>{
+    if(a.type==="down"||a.type==="blocked"){
+      const catEl=document.getElementById(`pending-cat-${a.id}`);
+      const dtEl=document.getElementById(`pending-dt-${a.id}`);
+      if(catEl) a.category=catEl.value;
+      if(dtEl) a.dateTime=localInputToDisplay(dtEl.value||displayToLocalInput(a.dateTime));
     }
+    if(a.type==="blocked") blockedActions.push(a);
+    else otherActions.push(a);
+  });
 
-    switch (a.type) {
+  // Build pending blocked map for terminal-inside-hub check
+  const pendingBlockedMap={};
+  blockedActions.forEach(a=>{
+    const termCodes=extractTerminalCodes(`*${a.parsed.code}(${a.parsed.terminals||""})*`);
+    pendingBlockedMap[uc(a.parsed.code)]=termCodes;
+  });
+
+  // Process non-blocked first
+  otherActions.forEach(a=>{
+    switch(a.type){
       case "rememberAlarm":
-        alarmMem[uc(a.code)] = { alarmText: a.alarmText, time: Date.now() };
-        results.push({ type: "result-alarm", text: `${a.code} alarm remembered` });
+        alarmMem[uc(a.code)]={alarmText:a.alarmText,time:Date.now()};
+        results.push({type:"result-alarm",text:`${a.code} alarm remembered`});
         break;
-
       case "restore":
-        applyRestoreAction(a.code, results);
+        applyRestoreAction(a.code,results);
         break;
-
       case "unblock":
-        applyUnblockAction(a.code, results);
+        applyUnblockAction(a.code,results);
         break;
-
       case "updateComment":
-        applyUpdateCommentAction(a.code, a.comment, results);
+        applyUpdateCommentAction(a.code,a.comment,results);
         break;
-
-      case "blocked":
-        applyBlockedAction(a, results);
+      case "hubOnlyRestore":
+        applyHubOnlyRestoreAction(a.code,results);
         break;
-
       case "down":
-        applyDownAction(a, results);
+        applyDownAction(a,results,pendingBlockedMap);
         break;
-
+      case "cancelled":
+        results.push({type:"result-cancelled",text:`${a.code} blocked+cleared in same batch — cancelled, not added`});
+        break;
       default:
-        results.push({ type: "result-ignored", text: `${a.raw || "Ignored"} ignored` });
+        results.push({type:"result-ignored",text:`${a.raw||"?"} ignored`});
     }
   });
 
-  state.dirty = true;
-  saveState();
-  renderSites();
+  // Process blocked (two-pass)
+  if(blockedActions.length) applyAllBlockedActions(blockedActions,results);
 
-  let html = `<div class="result-box">`;
-  results.forEach(r => html += `<div class="${r.type}">${escapeHtml(r.text)}</div>`);
-  html += `</div>`;
-  document.getElementById("alarmResult").innerHTML = html;
+  state.dirty=true;saveState();renderSites();
 
-  pendingActions = [];
+  let html=`<div class="result-box">`;
+  results.forEach(r=>html+=`<div class="${r.type}">${escapeHtml(r.text)}</div>`);
+  html+=`</div>`;
+  document.getElementById("alarmResult").innerHTML=html;
+  pendingActions=[];
   notify("Actions applied.");
 }
 
-function findEntriesByCode(code) {
-  return state.sites.filter(s => uc(s.code) === uc(code));
-}
+// ═══════════════════════════════════════════════════
+// TWO-PASS BLOCKED PROCESSING
+// ═══════════════════════════════════════════════════
+function applyAllBlockedActions(blockedActions,results){
+  const newBlockedCodes=blockedActions.map(a=>uc(a.parsed.code));
+  const existingBlockedCodes=state.sites.filter(s=>s.category==="blocked").map(s=>uc(s.code));
+  const allBlockedCodes=[...new Set([...newBlockedCodes,...existingBlockedCodes])];
 
-function findEntryIndex(code, category, section="daily") {
-  return state.sites.findIndex(s => uc(s.code) === uc(code) && s.category === category && s.section === section);
-}
-
-function findPrimaryEntryIndex(code) {
-  const matches = state.sites.filter(s => uc(s.code) === uc(code));
-  if (!matches.length) return -1;
-
-  // Prefer daily non-blocked
-  const preferred = matches
-    .filter(s => s.section === "daily" && s.category !== "blocked")
-    .sort((a,b) => extractTimestampFromLine(b.originalLine) - extractTimestampFromLine(a.originalLine));
-  if (preferred.length) return state.sites.findIndex(s => s.id === preferred[0].id);
-
-  // Then daily blocked
-  const blocked = matches
-    .filter(s => s.section === "daily" && s.category === "blocked")
-    .sort((a,b) => extractTimestampFromLine(b.originalLine) - extractTimestampFromLine(a.originalLine));
-  if (blocked.length) return state.sites.findIndex(s => s.id === blocked[0].id);
-
-  // Then old
-  const old = matches.sort((a,b) => extractTimestampFromLine(b.originalLine) - extractTimestampFromLine(a.originalLine));
-  return old.length ? state.sites.findIndex(s => s.id === old[0].id) : -1;
-}
-
-function applyRestoreAction(code, results) {
-  const all = state.sites.filter(s => uc(s.code) === uc(code));
-  if (!all.length) {
-    results.push({ type: "result-ignored", text: `${code} not found` });
-    return;
-  }
-  markRestore(code);
-  state.sites = state.sites.filter(s => uc(s.code) !== uc(code));
-  results.push({ type: "result-removed", text: `${code} restored and removed` });
-}
-
-function applyUnblockAction(code, results) {
-  const before = state.sites.length;
-  state.sites = state.sites.filter(s => !(uc(s.code) === uc(code) && s.category === "blocked"));
-  if (state.sites.length === before) results.push({ type: "result-ignored", text: `${code} not in blocked` });
-  else results.push({ type: "result-removed", text: `${code} cleared unblocked and removed from blocked` });
-}
-
-function applyUpdateCommentAction(code, comment, results) {
-  const idx = findPrimaryEntryIndex(code);
-  if (idx < 0) {
-    results.push({ type: "result-ignored", text: `${code} not found` });
-    return;
-  }
-  const site = state.sites[idx];
-  updateComment(site, comment);
-
-  if (/ACCESS\s*ISSUE/i.test(comment)) {
-    site.category = "access";
-    site.section = "daily";
-    results.push({ type: "result-moved", text: `${code} updated + moved to Access Issues` });
-  } else {
-    results.push({ type: "result-updated", text: `${code} comment updated` });
-  }
-}
-
-function markRestore(code) {
-  const k = uc(code);
-  const t = todayKey();
-  if (!flapMem[k] || flapMem[k].date !== t) flapMem[k] = { date: t, count: 1 };
-  else flapMem[k].count++;
-}
-
-function isFlapNow(code) {
-  const k = uc(code);
-  const t = todayKey();
-  // Flap on 3rd down => after 2 restores same day
-  return flapMem[k] && flapMem[k].date === t && flapMem[k].count >= 2;
-}
-
-function powerFamily(power) {
-  const p = uc(power);
-  if (p.includes("DG")) return "DG";
-  if (p.includes("MEW")) return "MEW";
-  if (p.includes("SHARED")) return "SHARED";
-  return "";
-}
-
-function addFlapToPower(power, shouldFlap) {
-  if (!shouldFlap) return power;
-  if (!power) return "Flap";
-  if (/\/Flap/i.test(power)) return power;
-  return power + "/Flap";
-}
-
-function cleanBlockedTerminals(terminals, power) {
-  if (!terminals) return "";
-  const powerHasVIP = /\/VIP/i.test(power || "");
-  const terminalHasVIP = /_VIP\b/i.test(terminals);
-
-  const count = (terminals.match(/^(\d+T)/i) || [])[1] || "";
-
-  if (powerHasVIP) return count;
-  if (terminalHasVIP) return terminals.replace(/_VIP\b/i, "/VIP");
-  return count;
-}
-
-function buildNewDownLine(parsed, dateTime, finalCategory, shouldFlap) {
-  const meta = {
-    code: parsed.code,
-    power: addFlapToPower(parsed.power || "", shouldFlap || finalCategory === "temperature"),
-    terminals: parsed.terminals || "",
-    order: parsed.order || "power-first",
-    dateTime,
-    tt: "**",
-    comment: "Team on the way."
-  };
-  return buildLine(meta, finalCategory);
-}
-
-function buildNewBlockedLine(parsed, dateTime, finalCategory, shouldFlap) {
-  const meta = {
-    code: parsed.code,
-    power: addFlapToPower(parsed.power || "", shouldFlap),
-    terminals: cleanBlockedTerminals(parsed.terminals || "", parsed.power || ""),
-    order: parsed.order || "power-first",
-    dateTime,
-    tt: "**",
-    alarm: parsed.alarm || "",
-    comment: "Team on the way."
-  };
-  return buildLine(meta, "blocked");
-}
-
-function spawnMissingTerminalEntriesFromOldSite(oldSite, newTermCodes = []) {
-  const oldMeta = extractLineMeta(oldSite.originalLine, oldSite.category);
-  const oldTermCodes = extractTerminalCodes(oldSite.originalLine);
-  const missing = oldTermCodes.filter(c => !newTermCodes.includes(c));
-
-  missing.forEach(tc => {
-    const exists = state.sites.find(s =>
-      uc(s.code) === uc(tc) &&
-      s.category === oldSite.category &&
-      s.section === oldSite.section
+  blockedActions.forEach(action=>{
+    const parsed=action.parsed;
+    const shouldFlap=isFlapNow(parsed.code);
+    const cleanedTerminals=cleanBlockedTerminalsSmart(
+      parsed.terminals||"",parsed.power||"",
+      allBlockedCodes.filter(c=>c!==uc(parsed.code))
     );
-    if (exists) return;
+    const newLine=buildLine({
+      code:parsed.code,
+      power:addFlapToPower(parsed.power||"",shouldFlap),
+      terminals:cleanedTerminals,
+      order:parsed.order||"power-first",
+      dateTime:action.dateTime,tt:"**",
+      alarm:parsed.alarm||"",comment:"Team on the way to the site."
+    },"blocked");
 
-    const meta = {
-      code: tc,
-      power: oldMeta.power,
-      terminals: "",
-      order: "power-first",
-      dateTime: oldMeta.dateTime,
-      tt: oldMeta.tt,
-      alarm: oldMeta.alarm,
-      comment: oldMeta.comment
-    };
-
-    const line = buildLine(meta, oldSite.category);
-    state.sites.push({
-      id: makeId(),
-      code: tc,
-      originalLine: line,
-      section: oldSite.section,
-      category: oldSite.category,
-      importOrder: 999999,
-      pinTime: 0
-    });
+    const sameIdx=findEntryIndex(parsed.code,"blocked","daily");
+    if(sameIdx>=0){
+      state.sites[sameIdx].originalLine=newLine;
+      state.sites[sameIdx].pinTime=Date.now();
+      results.push({type:"result-updated",text:`${parsed.code} updated in Blocked Sites`});
+    }else{
+      state.sites.push({
+        id:makeId(),code:parsed.code,originalLine:newLine,
+        section:"daily",category:"blocked",importOrder:999999,pinTime:Date.now()
+      });
+      results.push({type:"result-added",text:`${parsed.code} added to Blocked Sites`});
+    }
   });
 }
 
-function addTerminalBesideHub(hubSite, termCode) {
-  const meta = extractLineMeta(hubSite.originalLine, hubSite.category);
-  let terminals = meta.terminals || "";
+// ═══════════════════════════════════════════════════
+// INDIVIDUAL ACTIONS
+// ═══════════════════════════════════════════════════
+function findEntryIndex(code,category,section="daily"){
+  return state.sites.findIndex(s=>uc(s.code)===uc(code)&&s.category===category&&s.section===section);
+}
+function findPrimaryEntryIndex(code){
+  const matches=state.sites.filter(s=>uc(s.code)===uc(code));
+  if(!matches.length) return -1;
+  const preferred=matches.filter(s=>s.section==="daily"&&s.category!=="blocked")
+    .sort((a,b)=>extractTimestampFromLine(b.originalLine)-extractTimestampFromLine(a.originalLine));
+  if(preferred.length) return state.sites.findIndex(s=>s.id===preferred[0].id);
+  const blocked=matches.filter(s=>s.section==="daily"&&s.category==="blocked")
+    .sort((a,b)=>extractTimestampFromLine(b.originalLine)-extractTimestampFromLine(a.originalLine));
+  if(blocked.length) return state.sites.findIndex(s=>s.id===blocked[0].id);
+  const old=matches.sort((a,b)=>extractTimestampFromLine(b.originalLine)-extractTimestampFromLine(a.originalLine));
+  return old.length?state.sites.findIndex(s=>s.id===old[0].id):-1;
+}
 
-  if (uc(terminals).includes(uc(termCode))) return;
+function applyRestoreAction(code,results){
+  const all=state.sites.filter(s=>uc(s.code)===uc(code));
+  if(!all.length){results.push({type:"result-ignored",text:`${code} not found`});return;}
+  markRestore(code);
+  state.sites=state.sites.filter(s=>uc(s.code)!==uc(code));
+  results.push({type:"result-removed",text:`${code} restored and removed`});
+}
 
-  if (/^\d+T_OH(?:_[A-Z0-9]+)?$/i.test(terminals)) {
-    terminals = terminals.replace(/_OH(?:_[A-Z0-9]+)?/i, "_" + uc(termCode));
-  } else if (terminals.includes("_")) {
-    terminals = terminals + "," + uc(termCode);
-  } else if (terminals) {
-    terminals = terminals + "_" + uc(termCode);
-  } else {
-    terminals = "1T_" + uc(termCode);
+function applyUnblockAction(code,results){
+  const before=state.sites.length;
+  state.sites=state.sites.filter(s=>!(uc(s.code)===uc(code)&&s.category==="blocked"));
+  if(state.sites.length===before)
+    results.push({type:"result-ignored",text:`${code} not in blocked`});
+  else
+    results.push({type:"result-removed",text:`${code} cleared/unblocked and removed`});
+}
+
+function applyUpdateCommentAction(code,comment,results){
+  const idx=findPrimaryEntryIndex(code);
+  if(idx<0){results.push({type:"result-ignored",text:`${code} not found`});return;}
+  const site=state.sites[idx];
+  updateComment(site,comment);
+  if(/ACCESS\s*ISSUE/i.test(comment)){
+    site.category="access";site.section="daily";
+    results.push({type:"result-moved",text:`${code} updated + moved to Access Issues`});
+  }else{
+    results.push({type:"result-updated",text:`${code} comment updated`});
   }
-
-  meta.terminals = terminals;
-  hubSite.originalLine = buildLine(meta, hubSite.category);
 }
 
-function findOHHubCandidate(targetCategory, terminalPower) {
-  const fam = powerFamily(terminalPower);
-  const candidates = state.sites.filter(s => {
-    if (s.section !== "daily") return false;
-    if (s.category !== targetCategory) return false;
-    const meta = extractLineMeta(s.originalLine, s.category);
-    if (!meta.terminals || !/OH/i.test(meta.terminals)) return false;
-    if (fam && powerFamily(meta.power) !== fam) return false;
-    return true;
-  });
-  if (!candidates.length) return -1;
-  const sorted = sortItems(candidates);
-  return state.sites.findIndex(s => s.id === sorted[0].id);
+function updateComment(site,comment){
+  const meta=extractLineMeta(site.originalLine,site.category);
+  meta.comment=comment;
+  site.originalLine=buildLine(meta,site.category);
 }
 
-function applyBlockedAction(action, results) {
-  const parsed = action.parsed;
-  const finalCategory = action.category === "auto" ? "blocked" : action.category;
-  const shouldFlap = isFlapNow(parsed.code);
-  const newLine = buildNewBlockedLine(parsed, action.dateTime, finalCategory, shouldFlap);
+function applyHubOnlyRestoreAction(code,results){
+  const hubIdx=state.sites.findIndex(s=>uc(s.code)===uc(code));
+  if(hubIdx<0){results.push({type:"result-ignored",text:`${code} hub not found`});return;}
+  const hubSite=state.sites[hubIdx];
+  const termCodes=extractTerminalCodes(hubSite.originalLine);
+  const hubMeta=extractLineMeta(hubSite.originalLine,hubSite.category);
 
-  // Update same-category existing line if exists
-  const sameIdx = findEntryIndex(parsed.code, finalCategory, "daily");
-  if (sameIdx >= 0) {
-    state.sites[sameIdx].originalLine = newLine;
-    state.sites[sameIdx].pinTime = Date.now();
-    results.push({ type: "result-updated", text: `${parsed.code} updated in ${categoryLabel(finalCategory)}` });
+  if(!termCodes.length){
+    markRestore(code);
+    state.sites=state.sites.filter(s=>s.id!==hubSite.id);
+    results.push({type:"result-removed",text:`${code} hub restored, no terminals`});
     return;
   }
 
-  // If different existing category with same code, add separate blocked line, do not remove existing
-  state.sites.push({
-    id: makeId(),
-    code: parsed.code,
-    originalLine: newLine,
-    section: "daily",
-    category: finalCategory,
-    importOrder: 999999,
-    pinTime: Date.now()
+  termCodes.forEach(tc=>{
+    if(state.sites.find(s=>uc(s.code)===uc(tc)&&s.section===hubSite.section&&s.category===hubSite.category)) return;
+    const line=buildLine({
+      code:tc,power:hubMeta.power,terminals:"",order:"power-first",
+      dateTime:hubMeta.dateTime,tt:hubMeta.tt,alarm:hubMeta.alarm||"",
+      comment:hubMeta.comment||"Team on the way."
+    },hubSite.category);
+    state.sites.push({
+      id:makeId(),code:tc,originalLine:line,
+      section:hubSite.section,category:hubSite.category,
+      importOrder:999999,pinTime:Date.now()
+    });
+    results.push({type:"result-added",text:`${tc} spawned (hub ${code} restored, terminal still down)`});
   });
-  results.push({ type: "result-added", text: `${parsed.code} added to ${categoryLabel(finalCategory)}` });
+
+  markRestore(code);
+  state.sites=state.sites.filter(s=>s.id!==hubSite.id);
+  results.push({type:"result-removed",text:`${code} hub restored and removed`});
 }
 
-function applyDownAction(action, results) {
-  const parsed = action.parsed;
-  let finalCategory = action.category === "auto"
-    ? detectCategoryFromMemory(parsed.code, parsed.power, action.isDirect)
-    : action.category;
+function applyDownAction(action,results,pendingBlockedMap){
+  const parsed=action.parsed;
 
-  let shouldFlap = isFlapNow(parsed.code);
-  if (finalCategory === "temperature") shouldFlap = true;
+  if(isTerminalInsideBlockedHub(parsed.code,pendingBlockedMap)){
+    results.push({type:"result-ignored",
+      text:`${parsed.code} already terminal inside blocked hub — skipped`});
+    return;
+  }
 
-  const newLine = buildNewDownLine(parsed, action.dateTime, finalCategory, shouldFlap);
-  const newTermCodes = extractTerminalCodes(`*${buildTag(parsed)}*`);
+  let finalCategory=action.category==="auto"
+    ?detectCategoryFromMemory(parsed.code,parsed.power,action.isDirect)
+    :action.category;
 
-  // If this terminal is going direct down and there is a hub-only OH candidate and no prior alarm => add beside hub, no separate entry
-  const hasRememberedAlarm = !!alarmMem[uc(parsed.code)];
-  if (!action.isHubDown && action.isDirect && !hasRememberedAlarm) {
-    const hubIdx = findOHHubCandidate(finalCategory, parsed.power);
-    if (hubIdx >= 0) {
-      addTerminalBesideHub(state.sites[hubIdx], parsed.code);
-      results.push({ type: "result-updated", text: `${parsed.code} added beside hub ${state.sites[hubIdx].code}` });
-      delete alarmMem[uc(parsed.code)];
-      return;
+  let shouldFlap=isFlapNow(parsed.code);
+  if(finalCategory==="temperature") shouldFlap=true;
+
+  const newLine=buildNewDownLine(parsed,action.dateTime,finalCategory,shouldFlap);
+  const newTermCodes=extractTerminalCodes(`*${buildTag(parsed)}*`);
+
+  const hasRememberedAlarm=!!alarmMem[uc(parsed.code)];
+  if(!action.isHubDown&&action.isDirect&&!hasRememberedAlarm){
+    const hubIdx=findOHHubCandidate(finalCategory,parsed.power);
+    if(hubIdx>=0){
+      addTerminalBesideHub(state.sites[hubIdx],parsed.code);
+      results.push({type:"result-updated",text:`${parsed.code} added beside hub ${state.sites[hubIdx].code}`});
+      delete alarmMem[uc(parsed.code)];return;
     }
   }
 
-  const blockedIdx = findEntryIndex(parsed.code, "blocked", "daily");
-  const targetIdx = findEntryIndex(parsed.code, finalCategory, "daily");
-  const primaryIdx = findPrimaryEntryIndex(parsed.code);
+  const blockedIdx=findEntryIndex(parsed.code,"blocked","daily");
+  const targetIdx=findEntryIndex(parsed.code,finalCategory,"daily");
+  const primaryIdx=findPrimaryEntryIndex(parsed.code);
 
-  // If site already exists in target category, update it
-  if (targetIdx >= 0) {
-    const oldSite = state.sites[targetIdx];
-    spawnMissingTerminalEntriesFromOldSite(oldSite, newTermCodes);
-    oldSite.originalLine = newLine;
-    oldSite.section = "daily";
-    oldSite.category = finalCategory;
-    oldSite.pinTime = Date.now();
-    results.push({ type: "result-updated", text: `${parsed.code} updated in ${categoryLabel(finalCategory)}` });
-    delete alarmMem[uc(parsed.code)];
-    return;
+  if(targetIdx>=0){
+    const oldSite=state.sites[targetIdx];
+    spawnMissingTerminalEntries(oldSite,newTermCodes);
+    oldSite.originalLine=newLine;oldSite.section="daily";
+    oldSite.category=finalCategory;oldSite.pinTime=Date.now();
+    results.push({type:"result-updated",text:`${parsed.code} updated in ${categoryLabel(finalCategory)}`});
+    delete alarmMem[uc(parsed.code)];return;
   }
 
-  // If site exists in another non-blocked category, update/move same entry
-  if (primaryIdx >= 0 && state.sites[primaryIdx].category !== "blocked") {
-    const oldSite = state.sites[primaryIdx];
-    spawnMissingTerminalEntriesFromOldSite(oldSite, newTermCodes);
-    oldSite.originalLine = newLine;
-    oldSite.section = "daily";
-    oldSite.category = finalCategory;
-    oldSite.pinTime = Date.now();
-    results.push({ type: "result-moved", text: `${parsed.code} moved to ${categoryLabel(finalCategory)}` });
-    delete alarmMem[uc(parsed.code)];
-    return;
+  if(primaryIdx>=0&&state.sites[primaryIdx].category!=="blocked"){
+    const oldSite=state.sites[primaryIdx];
+    spawnMissingTerminalEntries(oldSite,newTermCodes);
+    oldSite.originalLine=newLine;oldSite.section="daily";
+    oldSite.category=finalCategory;oldSite.pinTime=Date.now();
+    results.push({type:"result-moved",text:`${parsed.code} moved to ${categoryLabel(finalCategory)}`});
+    delete alarmMem[uc(parsed.code)];return;
   }
 
-  // If blocked exists, keep blocked and add down too
-  if (blockedIdx >= 0) {
+  if(blockedIdx>=0){
     state.sites.push({
-      id: makeId(),
-      code: parsed.code,
-      originalLine: newLine,
-      section: "daily",
-      category: finalCategory,
-      importOrder: 999999,
-      pinTime: Date.now()
+      id:makeId(),code:parsed.code,originalLine:newLine,
+      section:"daily",category:finalCategory,importOrder:999999,pinTime:Date.now()
     });
-    results.push({ type: "result-added", text: `${parsed.code} added to ${categoryLabel(finalCategory)} (kept in blocked too)` });
-    delete alarmMem[uc(parsed.code)];
-    return;
+    results.push({type:"result-added",text:`${parsed.code} added to ${categoryLabel(finalCategory)} (kept in blocked too)`});
+    delete alarmMem[uc(parsed.code)];return;
   }
 
-  // Add as new
   state.sites.push({
-    id: makeId(),
-    code: parsed.code,
-    originalLine: newLine,
-    section: "daily",
-    category: finalCategory,
-    importOrder: 999999,
-    pinTime: Date.now()
+    id:makeId(),code:parsed.code,originalLine:newLine,
+    section:"daily",category:finalCategory,importOrder:999999,pinTime:Date.now()
   });
-  results.push({ type: "result-added", text: `${parsed.code} added to ${categoryLabel(finalCategory)}${shouldFlap ? " (Flap)" : ""}` });
+  results.push({type:"result-added",
+    text:`${parsed.code} added to ${categoryLabel(finalCategory)}${shouldFlap?" (Flap)":""}`});
   delete alarmMem[uc(parsed.code)];
 }
 
-// ============================
-// STATS
-// ============================
-
-function updateStats() {
-  const daily = state.sites.filter(s => s.section === "daily");
-  const down = daily.filter(s => s.category !== "blocked");
-  const blocked = daily.filter(s => s.category === "blocked");
-  const old = state.sites.filter(s => s.section === "old");
-
-  document.getElementById("statDown").textContent = groupCount(down);
-  document.getElementById("statBlocked").textContent = groupCount(blocked);
-  document.getElementById("statOld").textContent = groupCount(old);
-  document.getElementById("statTotal").textContent = state.sites.length;
+function spawnMissingTerminalEntries(oldSite,newTermCodes=[]){
+  const oldTermCodes=extractTerminalCodes(oldSite.originalLine);
+  const oldMeta=extractLineMeta(oldSite.originalLine,oldSite.category);
+  const missing=oldTermCodes.filter(c=>!newTermCodes.includes(c));
+  missing.forEach(tc=>{
+    if(state.sites.find(s=>uc(s.code)===uc(tc)&&s.category===oldSite.category&&s.section===oldSite.section)) return;
+    const line=buildLine({
+      code:tc,power:oldMeta.power,terminals:"",order:"power-first",
+      dateTime:oldMeta.dateTime,tt:oldMeta.tt,alarm:oldMeta.alarm,comment:oldMeta.comment
+    },oldSite.category);
+    state.sites.push({
+      id:makeId(),code:tc,originalLine:line,
+      section:oldSite.section,category:oldSite.category,importOrder:999999,pinTime:0
+    });
+  });
 }
 
-// ============================
-// OUTPUT
-// ============================
+function addTerminalBesideHub(hubSite,termCode){
+  const meta=extractLineMeta(hubSite.originalLine,hubSite.category);
+  let terminals=meta.terminals||"";
+  if(uc(terminals).includes(uc(termCode))) return;
+  if(/^\d+T_OH(?:_[A-Z0-9]+)?$/i.test(terminals))
+    terminals=terminals.replace(/_OH(?:_[A-Z0-9]+)?/i,"_"+uc(termCode));
+  else if(terminals.includes("_")) terminals+=","+uc(termCode);
+  else if(terminals) terminals+="_"+uc(termCode);
+  else terminals="1T_"+uc(termCode);
+  meta.terminals=terminals;
+  hubSite.originalLine=buildLine(meta,hubSite.category);
+}
 
-function generateOutput() {
-  if (!state.dirty && state.importedRawText) {
-    document.getElementById("summaryOutput").textContent = state.importedRawText;
+function findOHHubCandidate(targetCategory,terminalPower){
+  const fam=powerFamily(terminalPower);
+  const candidates=state.sites.filter(s=>{
+    if(s.section!=="daily"||s.category!==targetCategory) return false;
+    const meta=extractLineMeta(s.originalLine,s.category);
+    if(!meta.terminals||!/OH/i.test(meta.terminals)) return false;
+    if(fam&&powerFamily(meta.power)!==fam) return false;
+    return true;
+  });
+  if(!candidates.length) return -1;
+  const sorted=sortItems(candidates);
+  return state.sites.findIndex(s=>s.id===sorted[0].id);
+}
+
+// ═══════════════════════════════════════════════════
+// STATS
+// ═══════════════════════════════════════════════════
+function updateStats(){
+  const daily=state.sites.filter(s=>s.section==="daily");
+  const down=daily.filter(s=>s.category!=="blocked");
+  const blocked=daily.filter(s=>s.category==="blocked");
+  const old=state.sites.filter(s=>s.section==="old");
+  document.getElementById("statDown").textContent=groupCount(down);
+  document.getElementById("statBlocked").textContent=groupCount(blocked);
+  document.getElementById("statOld").textContent=groupCount(old);
+  document.getElementById("statTotal").textContent=state.sites.length;
+}
+
+// ═══════════════════════════════════════════════════
+// OUTPUT
+// ═══════════════════════════════════════════════════
+function generateOutput(){
+  if(!state.dirty&&state.importedRawText){
+    document.getElementById("summaryOutput").textContent=state.importedRawText;
     return;
   }
+  const dailyGroups={},oldGroups={};
+  DAILY_CAT_ORDER.forEach(cat=>
+    dailyGroups[cat]=sortItems(state.sites.filter(s=>s.section==="daily"&&s.category===cat)));
+  OLD_CAT_ORDER.forEach(cat=>
+    oldGroups[cat]=sortItems(state.sites.filter(s=>s.section==="old"&&s.category===cat)));
 
-  const dailyGroups = {};
-  const oldGroups = {};
+  const dailyDownItems=DAILY_CAT_ORDER.filter(c=>c!=="blocked").flatMap(c=>dailyGroups[c]);
+  const dailyBlockedItems=dailyGroups["blocked"];
+  const dailyDownCount=groupCount(dailyDownItems);
+  const dailyBlockedCount=groupCount(dailyBlockedItems);
+  const totalDaily=dailyDownCount+dailyBlockedCount;
 
-  DAILY_CAT_ORDER.forEach(cat => {
-    dailyGroups[cat] = sortItems(state.sites.filter(s => s.section === "daily" && s.category === cat));
-  });
+  let out="";
+  out+="------------------------------------------------\n";
+  out+=`*Daily Sites Down/Blocked: ${pad(totalDaily)}(${pad(dailyDownCount)}/${pad(dailyBlockedCount)})*\n`;
+  out+="------------------------------------------------\n";
 
-  OLD_CAT_ORDER.forEach(cat => {
-    oldGroups[cat] = sortItems(state.sites.filter(s => s.section === "old" && s.category === cat));
-  });
-
-  const dailyDownItems = DAILY_CAT_ORDER.filter(c => c !== "blocked").flatMap(c => dailyGroups[c]);
-  const dailyBlockedItems = dailyGroups["blocked"];
-
-  const dailyDownCount = groupCount(dailyDownItems);
-  const dailyBlockedCount = groupCount(dailyBlockedItems);
-  const totalDaily = dailyDownCount + dailyBlockedCount;
-
-  let out = "";
-  out += "------------------------------------------------\n";
-  out += `*Daily Sites Down/Blocked: ${pad(totalDaily)}(${pad(dailyDownCount)}/${pad(dailyBlockedCount)})*\n`;
-  out += "------------------------------------------------\n";
-
-  const dailyLabels = {
-    dg:"DG Issues",
-    power:"Power Issues",
-    temperature:"Temperature Issues",
-    thirdparty:"3rd Party Issues",
-    fiber:"Fiber Issues",
-    transmission:"Transmission Issues",
-    access:"Access Issues",
-    blocked:"Blocked Sites"
+  const dailyLabels={
+    dg:"DG Issues",power:"Power Issues",temperature:"Temperature Issues",
+    thirdparty:"3rd Party Issues",fiber:"Fiber Issues",transmission:"Transmission Issues",
+    access:"Access Issues",blocked:"Blocked Sites"
   };
 
-  DAILY_CAT_ORDER.forEach(cat => {
-    const items = dailyGroups[cat];
-    if (!items.length) return;
-    const count = groupCount(items);
-    if (cat === "blocked") out += `\n*Blocked Sites:${pad(count)}*\n`;
-    else out += `\n*${dailyLabels[cat]}: ${pad(count)}*\n`;
-    out += "--------------------------\n";
-    items.forEach(s => out += s.originalLine + "\n");
+  DAILY_CAT_ORDER.forEach(cat=>{
+    const items=dailyGroups[cat];
+    if(!items.length) return;
+    const count=groupCount(items);
+    out+=cat==="blocked"
+      ?`\n*Blocked Sites:${pad(count)}*\n`
+      :`\n*${dailyLabels[cat]}: ${pad(count)}*\n`;
+    out+="--------------------------\n";
+    items.forEach(s=>out+=s.originalLine+"\n");
   });
 
-  const allOld = state.sites.filter(s => s.section === "old");
-  if (allOld.length) {
-    const oldTotal = groupCount(allOld);
-    out += "\n----------------------------------------\n";
-    out += `*Old Pending Sites Down: ${pad(oldTotal)}*\n`;
-    out += "----------------------------------------\n";
-
-    const oldLabels = {
-      power:"Power issues",
-      access:"Access Issues",
-      thirdparty:"3rd Party Issues",
-      dg:"DG Issues",
-      temperature:"Temperature Issues",
-      fiber:"Fiber Issues",
+  const allOld=state.sites.filter(s=>s.section==="old");
+  if(allOld.length){
+    const oldTotal=groupCount(allOld);
+    out+="\n----------------------------------------\n";
+    out+=`*Old Pending Sites Down: ${pad(oldTotal)}*\n`;
+    out+="----------------------------------------\n";
+    const oldLabels={
+      power:"Power issues",access:"Access Issues",thirdparty:"3rd Party Issues",
+      dg:"DG Issues",temperature:"Temperature Issues",fiber:"Fiber Issues",
       transmission:"Transmission Issues",
       special:"Temporary Dismantling/Under Relocation/Under Renovation/Under Dismantling/Under Vandalism"
     };
-
-    const oldSeps = {
-      power:"--------------------------",
-      access:"--------------------------",
-      thirdparty:"--------------------------------------",
-      dg:"----------------------------------",
-      temperature:"--------------------------",
-      fiber:"--------------------------",
+    const oldSeps={
+      power:"--------------------------",access:"--------------------------",
+      thirdparty:"--------------------------------------",dg:"----------------------------------",
+      temperature:"--------------------------",fiber:"--------------------------",
       transmission:"--------------------------",
       special:"-------------------------------------------------------------------------------------------------------------------------"
     };
-
-    OLD_CAT_ORDER.forEach(cat => {
-      const items = oldGroups[cat];
-      if (!items.length) return;
-      const count = groupCount(items);
-      out += `\n*${oldLabels[cat]}: ${pad(count)}*\n`;
-      out += (oldSeps[cat] || "--------------------------") + "\n";
-      items.forEach(s => out += s.originalLine + "\n");
+    OLD_CAT_ORDER.forEach(cat=>{
+      const items=oldGroups[cat];
+      if(!items.length) return;
+      const count=groupCount(items);
+      out+=`\n*${oldLabels[cat]}: ${pad(count)}*\n`;
+      out+=(oldSeps[cat]||"--------------------------")+"\n";
+      items.forEach(s=>out+=s.originalLine+"\n");
     });
   }
 
-  document.getElementById("summaryOutput").textContent = out.trim();
+  document.getElementById("summaryOutput").textContent=out.trim();
 }
 
-// ============================
+// ═══════════════════════════════════════════════════
 // COPY
-// ============================
-
-function copySummary() {
-  const box = document.getElementById("summaryOutput");
-  if (!box.textContent || box.textContent.includes("Click")) generateOutput();
-
-  navigator.clipboard.writeText(box.textContent).then(() => {
-    notify("Summary copied.");
-  }).catch(() => {
-    const ta = document.createElement("textarea");
-    ta.value = box.textContent;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    document.body.removeChild(ta);
-    notify("Summary copied.");
-  });
+// ═══════════════════════════════════════════════════
+function copySummary(){
+  const box=document.getElementById("summaryOutput");
+  if(!box.textContent||box.textContent.includes("Click")) generateOutput();
+  navigator.clipboard.writeText(box.textContent).then(()=>notify("Summary copied."))
+    .catch(()=>{
+      const ta=document.createElement("textarea");
+      ta.value=box.textContent;document.body.appendChild(ta);
+      ta.select();document.execCommand("copy");
+      document.body.removeChild(ta);notify("Summary copied.");
+    });
 }
 
-// ============================
+// ═══════════════════════════════════════════════════
 // MANAGE / EDIT
-// ============================
-
-function renderSites() {
-  const list = document.getElementById("siteList");
-  const filter = document.getElementById("filterSection").value;
-  let items = state.sites.slice();
-
-  if (filter === "daily") items = items.filter(s => s.section === "daily");
-  if (filter === "old") items = items.filter(s => s.section === "old");
-
-  if (!items.length) {
-    list.innerHTML = `<div class="empty">No sites found.</div>`;
-    return;
-  }
-
-  items = sortItems(items);
-
-  list.innerHTML = items.map(site => {
-    let cls = "site-item";
-    if (site.category === "blocked") cls += " blocked";
-    if (site.category === "access") cls += " access";
-    if (site.category === "temperature") cls += " temperature";
-    if (site.category === "fiber") cls += " fiber";
-    if (site.category === "transmission") cls += " transmission";
-    if (site.category === "dg") cls += " dg";
-    if (site.section === "old") cls += " old";
-
+// ═══════════════════════════════════════════════════
+function renderSites(){
+  const list=document.getElementById("siteList");
+  const filter=document.getElementById("filterSection").value;
+  let items=state.sites.slice();
+  if(filter==="daily") items=items.filter(s=>s.section==="daily");
+  if(filter==="old") items=items.filter(s=>s.section==="old");
+  if(!items.length){list.innerHTML=`<div class="empty">No sites found.</div>`;return;}
+  items=sortItems(items);
+  list.innerHTML=items.map(site=>{
+    let cls="site-item";
+    if(site.category==="blocked") cls+=" blocked";
+    if(site.category==="access") cls+=" access";
+    if(site.category==="temperature") cls+=" temperature";
+    if(site.category==="fiber") cls+=" fiber";
+    if(site.category==="transmission") cls+=" transmission";
+    if(site.category==="dg") cls+=" dg";
+    if(site.section==="old") cls+=" old";
     return `
       <div class="${cls}">
         <div class="site-head">
@@ -1481,103 +1394,72 @@ function renderSites() {
           <button class="btn btn-warning btn-sm" onclick="quickAccess('${site.id}')">🚪 Access</button>
           <button class="btn btn-danger btn-sm" onclick="quickRestore('${site.id}')">✅ Restore</button>
         </div>
-      </div>
-    `;
+      </div>`;
   }).join("");
 }
 
-function openEdit(id) {
-  const site = state.sites.find(s => s.id === id);
-  if (!site) return;
-  editingId = id;
-  document.getElementById("editTitle").textContent = "Edit " + site.code;
-  document.getElementById("editSection").value = site.section;
-  document.getElementById("editCategory").value = site.category;
-  document.getElementById("editLine").value = site.originalLine;
+function openEdit(id){
+  const site=state.sites.find(s=>s.id===id);
+  if(!site) return;
+  editingId=id;
+  document.getElementById("editTitle").textContent="Edit "+site.code;
+  document.getElementById("editSection").value=site.section;
+  document.getElementById("editCategory").value=site.category;
+  document.getElementById("editLine").value=site.originalLine;
   document.getElementById("editModal").classList.add("active");
 }
-
-function closeModal() {
+function closeModal(){
   document.getElementById("editModal").classList.remove("active");
-  editingId = null;
+  editingId=null;
 }
-
-function saveEdit() {
-  const idx = state.sites.findIndex(s => s.id === editingId);
-  if (idx < 0) return;
-
-  state.sites[idx].section = document.getElementById("editSection").value;
-  state.sites[idx].category = document.getElementById("editCategory").value;
-  state.sites[idx].originalLine = document.getElementById("editLine").value;
-  state.sites[idx].code = extractSiteCode(state.sites[idx].originalLine) || state.sites[idx].code;
-  state.dirty = true;
-  saveState();
-  renderSites();
-  closeModal();
-  notify("Site updated.");
+function saveEdit(){
+  const idx=state.sites.findIndex(s=>s.id===editingId);
+  if(idx<0) return;
+  state.sites[idx].section=document.getElementById("editSection").value;
+  state.sites[idx].category=document.getElementById("editCategory").value;
+  state.sites[idx].originalLine=document.getElementById("editLine").value;
+  state.sites[idx].code=extractSiteCode(state.sites[idx].originalLine)||state.sites[idx].code;
+  state.dirty=true;saveState();renderSites();closeModal();notify("Site updated.");
 }
-
-function moveCurrentToAccess() {
-  const idx = state.sites.findIndex(s => s.id === editingId);
-  if (idx < 0) return;
-  state.sites[idx].category = "access";
-  state.sites[idx].section = "daily";
-  state.dirty = true;
-  saveState();
-  renderSites();
-  closeModal();
-  notify("Moved to Access Issues.");
+function moveCurrentToAccess(){
+  const idx=state.sites.findIndex(s=>s.id===editingId);
+  if(idx<0) return;
+  state.sites[idx].category="access";state.sites[idx].section="daily";
+  state.dirty=true;saveState();renderSites();closeModal();notify("Moved to Access Issues.");
 }
-
-function restoreCurrent() {
-  if (!editingId) return;
-  quickRestore(editingId);
-  closeModal();
+function restoreCurrent(){if(!editingId)return;quickRestore(editingId);closeModal();}
+function quickAccess(id){
+  const idx=state.sites.findIndex(s=>s.id===id);
+  if(idx<0) return;
+  state.sites[idx].category="access";state.sites[idx].section="daily";
+  state.dirty=true;saveState();renderSites();notify("Moved to Access Issues.");
 }
-
-function quickAccess(id) {
-  const idx = state.sites.findIndex(s => s.id === id);
-  if (idx < 0) return;
-  state.sites[idx].category = "access";
-  state.sites[idx].section = "daily";
-  state.dirty = true;
-  saveState();
-  renderSites();
-  notify("Moved to Access Issues.");
-}
-
-function quickRestore(id) {
-  const idx = state.sites.findIndex(s => s.id === id);
-  if (idx < 0) return;
-  const code = state.sites[idx].code;
-  if (confirm(`Remove ${code} from summary?`)) {
+function quickRestore(id){
+  const idx=state.sites.findIndex(s=>s.id===id);
+  if(idx<0) return;
+  const code=state.sites[idx].code;
+  if(confirm(`Remove ${code} from summary?`)){
     markRestore(code);
-    state.sites = state.sites.filter(s => s.id !== id);
-    state.dirty = true;
-    saveState();
-    renderSites();
+    state.sites=state.sites.filter(s=>s.id!==id);
+    state.dirty=true;saveState();renderSites();
     notify(`${code} restored and removed.`);
   }
 }
-
-function clearAll() {
-  if (!confirm("Delete all data?")) return;
-  state = { sites: [], importedRawText: "", dirty: false, theme: state.theme };
-  alarmMem = {};
-  flapMem = {};
-  pendingActions = [];
+function clearAll(){
+  if(!confirm("Delete all data?")) return;
+  state={sites:[],importedRawText:"",dirty:false,theme:state.theme};
+  alarmMem={};flapMem={};pendingActions=[];
   saveState();
-  document.getElementById("summaryOutput").textContent = `Click "Generate Summary" to view output.`;
-  document.getElementById("importText").value = "";
-  document.getElementById("alarmText").value = "";
-  document.getElementById("importResult").innerHTML = "";
-  document.getElementById("alarmResult").innerHTML = "";
-  renderSites();
-  notify("All data cleared.");
+  document.getElementById("summaryOutput").textContent=`Click "Generate Summary" to view output.`;
+  document.getElementById("importText").value="";
+  document.getElementById("alarmText").value="";
+  document.getElementById("importResult").innerHTML="";
+  document.getElementById("alarmResult").innerHTML="";
+  renderSites();notify("All data cleared.");
 }
 
-document.getElementById("editModal").addEventListener("click", function(e) {
-  if (e.target === this) closeModal();
+document.getElementById("editModal").addEventListener("click",function(e){
+  if(e.target===this) closeModal();
 });
 </script>
 </body>
