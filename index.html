@@ -1364,12 +1364,26 @@ function clearAll(){
 }
 document.getElementById("editModal").addEventListener("click",function(e){if(e.target===this)closeModal();});
 </script>
-  <footer class="bg-arch-dark text-white py-8 text-center">
-    <p>
+  <footer class="footer">
+  <p>
     &copy; 2026 All Rights Reserved.
     Software Development by <strong>Eng. Ahmed Moustafa</strong> |
     Testing &amp; Quality Assurance by <strong>Eng. Moustafa Magdy</strong>
-    </p>
-  </footer>
+  </p>
+</footer>
+
+<style>
+  .footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    padding: 10px;
+    background-color: #f1f1f1;
+    border-top: 1px solid #ccc;
+    font-size: 14px;
+  }
+</style>
 </body>
 </html>
