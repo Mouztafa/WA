@@ -53,7 +53,6 @@ textarea{min-height:240px;resize:vertical;font-family:"Courier New",monospace;li
 .site-item.fiber{border-left-color:#06b6d4}
 .site-item.transmission{border-left-color:#8b5cf6}
 .site-item.dg{border-left-color:#f97316}
-/* NEW: ROT category color */
 .site-item.rot{border-left-color:#e11d48}
 .site-item.old{border-left-color:var(--purple)}
 .site-head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px}
@@ -133,7 +132,7 @@ textarea{min-height:240px;resize:vertical;font-family:"Courier New",monospace;li
     <h2>New Alarms</h2>
     <div class="hint">
       Supports down, blocked, restore, hub-only restore, Ring Down, comment updates.<br>
-      OH terminals count as 0 (hub only = 1). ROT Issues category supported.<br>
+      OH terminals count as 0. Named terminals count only. ROT Issues supported.<br>
       After pressing <b>Process</b>, edit times/categories before applying.
     </div>
     <div class="alarm-controls">
@@ -548,7 +547,6 @@ const SITE_RELATIONS={
   "GKC485":["IKC0306"]
 };
 
-// ═══ REVERSE INDEX ═══
 const CHILD_TO_PARENTS={};
 (function(){
   for(const hub in SITE_RELATIONS){
@@ -573,8 +571,6 @@ function getSiteRelationNote(code){
 
 const POWER_ALARMS=["Commercial Power Failure","Mains Input Out of Range","AC Mains Power Failure","Incoming Mains Voltage Out of Range","Hybrid DG Abnormal","Rectifier AC Power Failure","Rectifier DC Voltage Low","Rectifier DC Low Voltage"];
 const TEMP_ALARMS_FIXED=["Cabinet Air Inlet Temperature Unacceptable","Board Temperature unacceptable","Ambient Temperature"];
-
-// ═══ CHANGED: Added "rot" to both category orders ═══
 const DAILY_CAT_ORDER=["dg","power","temperature","thirdparty","fiber","transmission","rot","access","blocked"];
 const OLD_CAT_ORDER=["power","access","thirdparty","dg","temperature","fiber","transmission","rot","special"];
 
@@ -599,18 +595,9 @@ function pad(n){return String(n).padStart(2,"0");}
 function uc(s){return(s||"").toUpperCase();}
 function makeId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
 function escapeHtml(str){return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
-
-// ═══ CHANGED: Added ROT to categoryLabel ═══
 function categoryLabel(cat){
-  return{
-    dg:"DG Issues",power:"Power Issues",temperature:"Temperature Issues",
-    thirdparty:"3rd Party Issues",fiber:"Fiber Issues",transmission:"Transmission Issues",
-    rot:"ROT Issues",
-    access:"Access Issues",blocked:"Blocked Sites",
-    special:"Temporary Dismantling/Under Relocation/Under Renovation/Under Dismantling/Under Vandalism"
-  }[cat]||cat;
+  return{dg:"DG Issues",power:"Power Issues",temperature:"Temperature Issues",thirdparty:"3rd Party Issues",fiber:"Fiber Issues",transmission:"Transmission Issues",rot:"ROT Issues",access:"Access Issues",blocked:"Blocked Sites",special:"Temporary Dismantling/Under Relocation/Under Renovation/Under Dismantling/Under Vandalism"}[cat]||cat;
 }
-
 function todayKey(){const d=new Date();return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
 function cleanFlapMemory(){const today=todayKey(),clean={};for(const k in flapMem)if(flapMem[k].date===today)clean[k]=flapMem[k];flapMem=clean;}
 function cleanAlarmMemory(){const cutoff=Date.now()-30*24*60*60*1000,clean={};for(const k in alarmMem)if(alarmMem[k].time&&alarmMem[k].time>cutoff)clean[k]=alarmMem[k];alarmMem=clean;}
@@ -637,20 +624,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   cleanFlapMemory();cleanAlarmMemory();setDefaultDateTime();updateStats();
 });
 
-// ═══ COUNTING ═══
 function isRingDownCode(code){return/^RING DOWN BETWEEN/i.test((code||"").trim());}
-
-// ═══ CHANGED: isOHOnly — true if terminal string is purely OH with no named codes ═══
-function isOHOnly(terminals){
-  if(!terminals)return false;
-  // remove the count prefix e.g. "7T"
-  const codesStr=terminals.replace(/^\d+T_?/i,"");
-  if(!codesStr||codesStr.trim()==="")return false;
-  // split by comma and underscore
-  const parts=codesStr.split(/[,_]/).map(s=>s.trim().toUpperCase()).filter(s=>s);
-  // if every part is OH (or empty), then it's OH-only
-  return parts.every(p=>p==="OH"||p==="");
-}
 
 function countSectors(line){
   const code=extractSiteCode(line);
@@ -675,31 +649,46 @@ function extractTerminalCodes(line){
   }return[];
 }
 
-// ═══ CHANGED: OH-only terminals count as 0 (hub only = 1 sector) ═══
+// NEW: Get raw terminal string from line parens
+function getRawTerminalString(line){
+  const parens=[...line.matchAll(/\(([^)]*)\)/g)].map(m=>m[1]);
+  for(const content of parens){if(/^\d+T/i.test(content))return content.trim();}
+  return"";
+}
+
+// NEW: Count only NAMED terminals actually listed, not the NT number
+// (7T_OH)=0, (7T_GAJ091)=1, (7T_GAJ091,GKC544)=2
+function getEffectiveTerminalCount(line){
+  const raw=getRawTerminalString(line);
+  if(!raw)return 0;
+  const namedCodes=extractTerminalCodes(`*X*(${raw})`);
+  if(namedCodes.length>0)return namedCodes.length;
+  const afterCount=raw.replace(/^\d+T_?/i,"").trim();
+  if(!afterCount||/^OH$/i.test(afterCount))return 0;
+  const m=raw.match(/^(\d+)T/i);
+  return m?parseInt(m[1],10):0;
+}
+
+// FIXED: Uses effective terminal count
 function countContribution(site,sameCategoryItems){
   const code=extractSiteCode(site.originalLine);
-  const terminals=countTerminals(site.originalLine);
-  const termCodes=extractTerminalCodes(site.originalLine);
-
-  // check if terminals string is OH-only
-  const parens=[...site.originalLine.matchAll(/\(([^)]*)\)/g)].map(m=>m[1]);
-  let rawTermStr="";
-  for(const c of parens){if(/^\d+T/i.test(c)){rawTermStr=c;break;}}
-  const ohOnly=isOHOnly(rawTermStr);
-
-  let skip=0;
-  for(const tc of termCodes){
-    if(state.sites.some(s=>s.id!==site.id&&uc(s.code.trim())===uc(tc.trim())))skip++;
+  if(isRingDownCode(code)){
+    const termCodes=extractTerminalCodes(site.originalLine);
+    let duplicates=0;
+    for(const tc of termCodes){
+      if(state.sites.some(s=>s.id!==site.id&&uc(s.code.trim())===uc(tc.trim())))duplicates++;
+    }
+    return Math.max(0,termCodes.length-duplicates);
   }
-
-  if(isRingDownCode(code))return Math.max(0,terminals-skip);
   const sectors=countSectors(site.originalLine);
   if(site.category==="blocked")return sectors;
-
-  // ═══ FIX: if OH-only, terminals = 0, count only sectors (hub itself) ═══
-  if(ohOnly)return sectors;
-
-  return sectors+Math.max(0,terminals-skip);
+  const terminals=getEffectiveTerminalCount(site.originalLine);
+  const termCodes=extractTerminalCodes(site.originalLine);
+  let duplicates=0;
+  for(const tc of termCodes){
+    if(state.sites.some(s=>s.id!==site.id&&uc(s.code.trim())===uc(tc.trim())))duplicates++;
+  }
+  return sectors+Math.max(0,terminals-duplicates);
 }
 
 function groupCount(items){return items.reduce((sum,s)=>sum+countContribution(s,items),0);}
@@ -711,8 +700,6 @@ function sortItems(items){
     if(ap!==bp)return bp-ap;return(a.importOrder||0)-(b.importOrder||0);
   });
 }
-
-// ═══ TAG / LINE PARSING ═══
 function extractSiteCode(line){
   let t=line.trim();if(t.startsWith("*"))t=t.slice(1);
   const rdm=t.match(/^(Ring Down between\s+\S+\s+and\s+\S+)/i);
@@ -768,9 +755,6 @@ function buildLine(meta,category){
   else line+=` - ${meta.comment||""}`;
   return line.replace(/\s+-\s+$/,"").trim();
 }
-
-// ═══ HEADER DETECTION ═══
-// ═══ CHANGED: Added ROT Issues header detection ═══
 function isHeaderOrSeparator(line){
   const t=line.trim();if(!t)return true;if(/^[-]{3,}$/.test(t))return true;
   if(/^\*?Daily Sites Down\/Blocked/i.test(t))return true;if(/^\*?Old Pending Sites Down/i.test(t))return true;
@@ -782,9 +766,6 @@ function isHeaderOrSeparator(line){
   if(/^\*?Temporary Dismantling\/Under Relocation\/Under Renovation\/Under Dismantling\/Under Vandalism:\s*\d+\*?$/i.test(t))return true;
   return false;
 }
-
-// ═══ IMPORT ═══
-// ═══ CHANGED: Added ROT category detection in import ═══
 function importSummary(){
   const text=document.getElementById("importText").value;if(!text.trim()){notify("Paste summary first.");return;}
   const lines=text.split("\n");const imported=[];let section="daily",category="power";const orderCounters={};
@@ -811,7 +792,6 @@ function importSummary(){
   document.getElementById("importResult").innerHTML=`<div class="result-box"><div class="result-added">✅ Imported ${imported.length} lines.</div></div>`;
   renderSites();notify("Summary imported.");
 }
-
 function isPowerAlarm(text){const t=(text||"").toLowerCase();return POWER_ALARMS.some(a=>t.includes(a.toLowerCase()));}
 function isTempAlarm(text){if(/high temperature over\s*\d+\s*c/i.test(text||""))return true;const t=(text||"").toLowerCase();return TEMP_ALARMS_FIXED.some(a=>t.includes(a.toLowerCase()));}
 function detectCategoryFromAlarm(alarmText,powerType,isDirect){
@@ -885,8 +865,6 @@ function extractCommentFromLine(line,code){
   c=c.replace(/\/\/Cells Blocking/i,"").replace(/^[-\s]+/,"").trim();
   return c||"Team on the way to the site.";
 }
-
-// ═══ PREPARE PENDING ═══
 function preparePendingActions(){
   const text=document.getElementById("alarmText").value;if(!text.trim()){notify("Paste alarms first.");return;}
   const defaultCat=document.getElementById("alarmCategory").value;
@@ -951,9 +929,6 @@ function preparePendingActions(){
   }
   renderPendingActions();
 }
-
-// ═══ RENDER PENDING ═══
-// ═══ CHANGED: Added ROT option in category select ═══
 function renderPendingActions(){
   const box=document.getElementById("alarmResult");
   if(!pendingActions.length){box.innerHTML=`<div class="result-box"><div class="result-ignored">No valid actions detected.</div></div>`;return;}
@@ -1007,7 +982,6 @@ function renderPendingActions(){
   box.innerHTML=html;
 }
 function clearPendingActions(){pendingActions=[];document.getElementById("alarmResult").innerHTML="";}
-
 function applyPendingActions(){
   if(!pendingActions.length)return;
   const results=[];
@@ -1042,10 +1016,8 @@ function applyPendingActions(){
   pendingActions=[];notify("Actions applied.");
 }
 function applyRingDownAction(action,results){
-  const code=uc(action.parsed.code);
-  const category=action.category==="auto"?"power":action.category;
-  const dateTime=action.dateTime||nowDisplayDateTime();
-  const terminals=action.parsed.terminals||"";
+  const code=uc(action.parsed.code);const category=action.category==="auto"?"power":action.category;
+  const dateTime=action.dateTime||nowDisplayDateTime();const terminals=action.parsed.terminals||"";
   const newLine=`*${code}${terminals?"("+terminals+")":""}* ${dateTime}`.trim();
   const existIdx=state.sites.findIndex(s=>isRingDownCode(s.code)&&uc(s.code)===code&&s.category===category&&s.section==="daily");
   if(existIdx>=0){state.sites[existIdx].originalLine=newLine;state.sites[existIdx].pinTime=Date.now();results.push({type:"result-updated",text:`Ring Down updated in ${categoryLabel(category)}`});}
@@ -1218,9 +1190,6 @@ function updateStats(){
   document.getElementById("statOld").textContent=groupCount(old);
   document.getElementById("statTotal").textContent=state.sites.length;
 }
-
-// ═══ OUTPUT ═══
-// ═══ CHANGED: Added ROT Issues to output generation ═══
 function generateOutput(){
   if(!state.dirty&&state.importedRawText){document.getElementById("summaryOutput").textContent=state.importedRawText;return;}
   const dailyGroups={},oldGroups={};
@@ -1235,26 +1204,8 @@ function generateOutput(){
   out+="------------------------------------------------\n";
   out+=`*Daily Sites Down/Blocked: ${pad(totalDaily)}(${pad(dailyDownCount)}/${pad(dailyBlockedCount)})*\n`;
   out+="------------------------------------------------\n";
-
-  // ═══ CHANGED: Added ROT to dailyLabels and dailySeps ═══
-  const dailyLabels={
-    dg:"DG Issues",power:"Power Issues",temperature:"Temperature Issues",
-    thirdparty:"3rd Party Issues",fiber:"Fiber Issues",transmission:"Transmission Issues",
-    rot:"ROT Issues",
-    access:"Access Issues",blocked:"Blocked Sites"
-  };
-  const dailySeps={
-    dg:"----------------------------------",
-    power:"--------------------------",
-    temperature:"--------------------------",
-    thirdparty:"--------------------------------------",
-    fiber:"--------------------------",
-    transmission:"--------------------------",
-    rot:"----------------------------------",
-    access:"--------------------------",
-    blocked:"--------------------------"
-  };
-
+  const dailyLabels={dg:"DG Issues",power:"Power Issues",temperature:"Temperature Issues",thirdparty:"3rd Party Issues",fiber:"Fiber Issues",transmission:"Transmission Issues",rot:"ROT Issues",access:"Access Issues",blocked:"Blocked Sites"};
+  const dailySeps={dg:"----------------------------------",power:"--------------------------",temperature:"--------------------------",thirdparty:"--------------------------------------",fiber:"--------------------------",transmission:"--------------------------",rot:"----------------------------------",access:"--------------------------",blocked:"--------------------------"};
   DAILY_CAT_ORDER.forEach(cat=>{
     const items=dailyGroups[cat];if(!items.length)return;
     const count=groupCount(items);
@@ -1265,30 +1216,14 @@ function generateOutput(){
     normalItems.forEach(s=>out+=s.originalLine+"\n");
     ringItems.forEach(s=>out+=s.originalLine+"\n");
   });
-
   const allOld=state.sites.filter(s=>s.section==="old");
   if(allOld.length){
     const oldTotal=groupCount(allOld);
     out+="\n----------------------------------------\n";
     out+=`*Old Pending Sites Down: ${pad(oldTotal)}*\n`;
     out+="----------------------------------------\n";
-
-    // ═══ CHANGED: Added ROT to oldLabels and oldSeps ═══
-    const oldLabels={
-      power:"Power issues",access:"Access Issues",thirdparty:"3rd Party Issues",
-      dg:"DG Issues",temperature:"Temperature Issues",fiber:"Fiber Issues",
-      transmission:"Transmission Issues",
-      rot:"ROT Issues",
-      special:"Temporary Dismantling/Under Relocation/Under Renovation/Under Dismantling/Under Vandalism"
-    };
-    const oldSeps={
-      power:"--------------------------",access:"--------------------------",
-      thirdparty:"--------------------------------------",dg:"----------------------------------",
-      temperature:"--------------------------",fiber:"--------------------------",
-      transmission:"--------------------------",
-      rot:"----------------------------------",
-      special:"-------------------------------------------------------------------------------------------------------------------------"
-    };
+    const oldLabels={power:"Power issues",access:"Access Issues",thirdparty:"3rd Party Issues",dg:"DG Issues",temperature:"Temperature Issues",fiber:"Fiber Issues",transmission:"Transmission Issues",rot:"ROT Issues",special:"Temporary Dismantling/Under Relocation/Under Renovation/Under Dismantling/Under Vandalism"};
+    const oldSeps={power:"--------------------------",access:"--------------------------",thirdparty:"--------------------------------------",dg:"----------------------------------",temperature:"--------------------------",fiber:"--------------------------",transmission:"--------------------------",rot:"----------------------------------",special:"-------------------------------------------------------------------------------------------------------------------------"};
     OLD_CAT_ORDER.forEach(cat=>{
       const items=oldGroups[cat];if(!items.length)return;
       const count=groupCount(items);
@@ -1299,7 +1234,6 @@ function generateOutput(){
   }
   document.getElementById("summaryOutput").textContent=out.trim();
 }
-
 function copySummary(){
   const box=document.getElementById("summaryOutput");
   if(!box.textContent||box.textContent.includes("Click"))generateOutput();
@@ -1307,9 +1241,6 @@ function copySummary(){
     const ta=document.createElement("textarea");ta.value=box.textContent;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);notify("Summary copied.");
   });
 }
-
-// ═══ MANAGE / EDIT ═══
-// ═══ CHANGED: Added rot class to site-item and ROT to categoryLabel ═══
 function renderSites(){
   const list=document.getElementById("siteList");
   const filter=document.getElementById("filterSection").value;
