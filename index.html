@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WhatsApp Summary Master</title>
+<style>
+:root{
+  --bg:#101726;--panel:#182235;--panel2:#121a29;--text:#e8edf7;--muted:#97a3b6;
+  --border:#2c3850;--primary:#25d366;--secondary:#4a5568;--danger:#e53e3e;
+  --warning:#ed8936;--purple:#9f7aea;--input:#0f1724;
+}
+[data-theme="light"]{
+  --bg:#f4f7fb;--panel:#fff;--panel2:#f7f9fc;--text:#182235;--muted:#5c667a;
+  --border:#d7dfeb;--primary:#25d366;--secondary:#64748b;--danger:#dc2626;
+  --warning:#ea580c;--purple:#7c3aed;--input:#fff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",Tahoma,sans-serif;background:var(--bg);color:var(--text);padding:16px}
+.container{max-width:1180px;margin:0 auto}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+h1{font-size:1.5rem;color:var(--primary)}
+.theme-btn{border:1px solid var(--border);background:var(--panel);color:var(--text);padding:9px 14px;border-radius:10px;font-weight:700;cursor:pointer}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px}
+.stat{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}
+.stat-num{font-size:1.55rem;font-weight:800;color:var(--primary)}
+.stat-label{color:var(--muted);font-size:12px;margin-top:4px}
+.tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.tab{border:1px solid var(--border);background:var(--panel);color:var(--text);padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer}
+.tab.active{background:var(--primary);color:#07140b;border-color:var(--primary)}
+.panel{display:none;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px}
+.panel.active{display:block}
+.panel h2{margin-bottom:8px;color:var(--primary);font-size:1.15rem}
+.hint{color:var(--muted);font-size:13px;margin-bottom:12px;line-height:1.45}
+textarea,input,select{width:100%;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13px}
+textarea{min-height:240px;resize:vertical;font-family:"Courier New",monospace;line-height:1.45}
+.btn{border:none;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;margin-right:8px;margin-bottom:8px}
+.btn-primary{background:var(--primary);color:#07140b}
+.btn-secondary{background:var(--secondary);color:#fff}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-warning{background:var(--warning);color:#111}
+.btn-sm{padding:7px 10px;font-size:12px}
+.summary-box{margin-top:14px;background:#000;color:#fff;border-radius:12px;padding:16px;font-family:"Courier New",monospace;white-space:pre-wrap;word-break:break-word;max-height:680px;overflow-y:auto;line-height:1.4;border:1px solid #222;overflow-x:auto}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.alarm-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;padding:12px;background:var(--panel2);border:1px solid var(--border);border-radius:10px}
+.alarm-controls label{color:var(--muted);font-size:12px;font-weight:700;margin-right:4px}
+.alarm-controls select,.alarm-controls input{width:auto;min-width:180px}
+.site-list{display:grid;gap:10px}
+.site-item{border:1px solid var(--border);background:var(--panel2);border-left:4px solid var(--primary);border-radius:12px;padding:14px;overflow-x:auto}
+.site-item.blocked{border-left-color:var(--danger)}
+.site-item.access{border-left-color:var(--warning)}
+.site-item.temperature{border-left-color:#f59e0b}
+.site-item.fiber{border-left-color:#06b6d4}
+.site-item.transmission{border-left-color:#8b5cf6}
+.site-item.dg{border-left-color:#f97316}
+/* NEW: ROT category color */
+.site-item.rot{border-left-color:#e11d48}
+.site-item.old{border-left-color:var(--purple)}
+.site-head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.site-code{font-weight:800;color:var(--primary)}
+.badges{display:flex;gap:6px;flex-wrap:wrap}
+.badge{font-size:11px;padding:4px 8px;border-radius:999px;background:var(--secondary);color:#fff}
+.site-line{font-family:"Courier New",monospace;font-size:12px;color:var(--muted);white-space:pre-wrap;word-break:break-word;overflow-x:auto;max-width:100%}
+.site-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.result-box{margin-top:12px;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:13px;max-height:360px;overflow-y:auto}
+.result-added{color:var(--primary)}
+.result-updated{color:var(--warning)}
+.result-ignored{color:var(--muted)}
+.result-moved{color:var(--purple)}
+.result-removed{color:#f87171}
+.result-alarm{color:#06b6d4}
+.result-cancelled{color:#fb923c}
+.pending-item{border:1px solid var(--border);padding:10px;border-radius:10px;margin-bottom:10px;background:var(--panel)}
+.pending-head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.pending-code{font-weight:700;color:var(--primary)}
+.pending-meta{font-size:12px;color:var(--muted);font-family:"Courier New",monospace;white-space:pre-wrap}
+.pending-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:8px}
+.relation-note{font-size:12px;padding:6px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--border);color:#06b6d4;margin-top:8px}
+.notif{position:fixed;top:18px;right:18px;background:var(--primary);color:#07140b;padding:12px 18px;border-radius:10px;font-weight:800;z-index:3000;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:2500;justify-content:center;align-items:center;padding:14px}
+.modal.active{display:flex}
+.modal-box{width:min(760px,100%);background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;max-height:88vh;overflow-y:auto}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.close-btn{background:none;border:none;color:var(--text);font-size:24px;cursor:pointer}
+.form-group{margin-bottom:12px}
+.form-group label{display:block;margin-bottom:5px;color:var(--muted);font-size:12px;font-weight:700}
+.empty{color:var(--muted);text-align:center;padding:20px}
+@media(max-width:768px){
+  .row{grid-template-columns:1fr}
+  .tabs{flex-direction:column}
+  .tab{width:100%}
+  .alarm-controls{flex-direction:column}
+  .alarm-controls select,.alarm-controls input{width:100%}
+}
+</style>
+</head>
+<body data-theme="dark">
+<div class="container">
+  <header>
+    <h1>📱 WhatsApp Summary Master</h1>
+    <button class="theme-btn" onclick="toggleTheme()">🌓 Theme</button>
+  </header>
+  <div class="stats">
+    <div class="stat"><div class="stat-num" id="statDown">0</div><div class="stat-label">Daily Down</div></div>
+    <div class="stat"><div class="stat-num" id="statBlocked">0</div><div class="stat-label">Blocked</div></div>
+    <div class="stat"><div class="stat-num" id="statOld">0</div><div class="stat-label">Old Pending</div></div>
+    <div class="stat"><div class="stat-num" id="statTotal">0</div><div class="stat-label">Total Lines</div></div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="openTab('summary',this)">📄 Update Summary</button>
+    <button class="tab" onclick="openTab('oldsummary',this)">📥 Old Summary</button>
+    <button class="tab" onclick="openTab('alarms',this)">⚡ New Alarms</button>
+    <button class="tab" onclick="openTab('manage',this)">⚙️ Manage Sites</button>
+  </div>
+  <div class="panel active" id="summary">
+    <h2>Update Summary</h2>
+    <div class="toolbar">
+      <button class="btn btn-primary" onclick="generateOutput()">🔄 Generate Summary</button>
+      <button class="btn btn-secondary" onclick="copySummary()">📋 Copy Summary</button>
+    </div>
+    <div class="summary-box" id="summaryOutput">Click "Generate Summary" to view output.</div>
+  </div>
+  <div class="panel" id="oldsummary">
+    <h2>Old Summary</h2>
+    <div class="hint">Paste your previous WhatsApp summary exactly as it is.</div>
+    <textarea id="importText" placeholder="Paste your full old WhatsApp summary here..."></textarea>
+    <button class="btn btn-primary" onclick="importSummary()">📥 Load Summary</button>
+    <button class="btn btn-secondary" onclick="document.getElementById('importText').value=''">🗑️ Clear</button>
+    <div id="importResult"></div>
+  </div>
+  <div class="panel" id="alarms">
+    <h2>New Alarms</h2>
+    <div class="hint">
+      Supports down, blocked, restore, hub-only restore, Ring Down, comment updates.<br>
+      OH terminals count as 0 (hub only = 1). ROT Issues category supported.<br>
+      After pressing <b>Process</b>, edit times/categories before applying.
+    </div>
+    <div class="alarm-controls">
+      <div>
+        <label>Category Override:</label>
+        <select id="alarmCategory">
+          <option value="auto">🔍 Auto-detect</option>
+          <option value="dg">DG Issues</option>
+          <option value="power">Power Issues</option>
+          <option value="temperature">Temperature Issues</option>
+          <option value="thirdparty">3rd Party Issues</option>
+          <option value="fiber">Fiber Issues</option>
+          <option value="transmission">Transmission Issues</option>
+          <option value="rot">ROT Issues</option>
+          <option value="access">Access Issues</option>
+          <option value="blocked">Blocked Sites</option>
+        </select>
+      </div>
+      <div>
+        <label>Default Date/Time:</label>
+        <input type="datetime-local" id="alarmDateTime"/>
+      </div>
+    </div>
+    <textarea id="alarmText" placeholder="Paste alarms or updates here..."></textarea>
+    <div style="margin-top:8px;">
+      <button class="btn btn-primary" onclick="preparePendingActions()">⚡ Process</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('alarmText').value=''">🗑️ Clear</button>
+    </div>
+    <div id="alarmResult"></div>
+  </div>
+  <div class="panel" id="manage">
+    <h2>Manage Sites</h2>
+    <div class="toolbar">
+      <select id="filterSection" onchange="renderSites()" style="max-width:180px;">
+        <option value="all">All Sections</option>
+        <option value="daily">Daily Only</option>
+        <option value="old">Old Pending Only</option>
+      </select>
+      <button class="btn btn-danger" onclick="clearAll()">🗑️ Reset All</button>
+    </div>
+    <div class="site-list" id="siteList"></div>
+  </div>
+</div>
+<div class="modal" id="editModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="editTitle" style="margin:0;color:var(--primary);">Edit Site</h3>
+      <button class="close-btn" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="row">
+      <div class="form-group">
+        <label>Section</label>
+        <select id="editSection">
+          <option value="daily">Daily</option>
+          <option value="old">Old Pending</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select id="editCategory">
+          <option value="dg">DG Issues</option>
+          <option value="power">Power Issues</option>
+          <option value="temperature">Temperature Issues</option>
+          <option value="thirdparty">3rd Party Issues</option>
+          <option value="fiber">Fiber Issues</option>
+          <option value="transmission">Transmission Issues</option>
+          <option value="rot">ROT Issues</option>
+          <option value="access">Access Issues</option>
+          <option value="blocked">Blocked Sites</option>
+          <option value="special">Temp Dismantling / Relocation / Renovation / Vandalism</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Full line (edit directly)</label>
+      <textarea id="editLine" style="min-height:150px;"></textarea>
+    </div>
+    <button class="btn btn-primary" onclick="saveEdit()">💾 Save</button>
+    <button class="btn btn-warning" onclick="moveCurrentToAccess()">🚪 Move to Access</button>
+    <button class="btn btn-danger" onclick="restoreCurrent()">✅ Restore</button>
+  </div>
+</div>
+<script>
+const STORAGE_KEY="wa_summary_master_v13";
+const ALARM_MEM_KEY=STORAGE_KEY+"_alarmMem";
+const FLAP_MEM_KEY=STORAGE_KEY+"_flapMem";
+
+const SITE_RELATIONS={
+  "GAJ007":["GAJ005","GAJ016","IAJ0004"],"GAJ053":["GAJ114"],"GHA072":["GHA286"],"GMK017":["GMK176","GMK230"],
+  "GAA007":["GAA312","GAA376","GAA386"],"GAA457":["SIAA009","GAA870"],"IAA0082":["XAA082"],"GHA096":["GHA186","GHA228","GHA382"],
+  "GAA049":["GAA321","IKC0120","SAA012"],"GAA088":["GAA090","GAA099","GAA172","XAA011","GAA636"],
+  "GAA180":["GAA152","SAA001","GAJ362","GAJ221","GAA171","GAJ121","GAJ364","GAJ361","GAA604","GAA234"],
+  "GAJ304":["GAA181"],"GAJ361":["GAA604"],"GAJ364":["GAJ361","GAA604"],"GAA080":["IAA0001","IAA0115"],
+  "GAJ014":["IKC0099","XAJ005","SAJ012"],"GMK007":["GMK175","GMK186","GMK191","GMK214"],
+  "GKC010":["IKC0048","IKC0112","IKC0125","IKC0216"],"GHA054":["GHA447","IHA0059","GHA467"],
+  "GKC083":["IAA0047","IAA0048","IAA0049","IKC0220"],"GAF045":["GAF345","GAF350","SAF017"],
+  "IAA0014":["GKC021","GKC064","IAA0046","IAA0042","IAA0017"],"GAA091":["GAA263","GAA564","GMK001","GAA289"],
+  "GKC005":["IKC0097"],"GKC030":["IAA0016","IKC0102","XKC015","IKC0204"],"GKC024":["IKC0235","IKC0190","IKC0205"],
+  "GKC020":["IKC0049","IKC0050","IKC0096","SIKC001"],"GHA163":["GHA247","GHA112"],
+  "GKC110":["IKC0007","IAF0079","IKC0179","IKC0218","IKC0077"],"GAA142":["GAA692","GAA673","GAA358","GAA737","GAA116"],
+  "IKC0058":["SIHA048","IKC0081","IKC0082","IKC0083"],"GKC138":["GKC236","GKC251","GKC273","GKC331"],
+  "GAF190":["GAF331","GAF516"],"GAF198":["SAF023","XAF002"],"IKC0006":["IKC0012","IKC0001"],
+  "IAA0025":["IKC0032","GKC003","IKC0016"],"IKC0137":["IKC0149","IKC0152","IKC0213"],"GHA007":["IKC0024","XHA004","IHA0057"],
+  "IAA0064":["IHA0035","IHA0018"],"GAF050":["IKC0008","GHA497","GAF078","IAF0024","IKC0009"],
+  "GHA055":["IKC0030","GHA125","IHA0034"],"IAA0007":["IKC0199","IAA0043","IKC0011"],"GKC014":["IKC0236","IKC0159","IKC0107"],
+  "IAA0039":["IAA0040","IAA0041","IAA0081","IAA0034"],"GKC041":["IKC0020"],"IKC0168":["IKC0173"],
+  "IAA0046":["IAA0042","IAA0017"],"IKC0067":["IKC0080"],"GKC170":["SKC017","GKC169","IKC0212","IKC0267","GKC285","SIKC033"],
+  "IKC0212":["SIKC033"],"IKC0183":["IKC0195"],"IKC0068":["IKC0178"],"IKC0165":["IKC0167","SIKC030","IKC0166"],
+  "IAF0053":["IAF0056"],"IAA0080":["IAA0124"],"GHA143":["IAF0048","IHA0064"],
+  "IAF0033":["IAF0034","IKC0245","IKC0246","IKC0247","IKC0248"],"IAF0063":["IAF0064"],"IAF0037":["IAF0038","XAF036","IAF0041"],
+  "IAF0035":["IAF0036","INKC0021"],"IMK0023":["SIMK013"],"IAA0031":["IAA0045"],"GAJ093":["XAJ009"],
+  "GJR003":["GAJ500","GAJ538","GAJ530","GAJ537","CAM321","GAJ593"],"GJR004":["GAJ151","GAJ334(5G)","GAJ056"],
+  "GJR005":["GAJ220","CAM408","XAJ010","GAJ303","IAJ0020","GAJ133","GAJ150","IAJ0002"],
+  "GAJ010":["CAM230","CAM231","GAJ253","SAJ014"],"GKC111":["GKC271","XKC004","IKC0150"],"GMK002":["GMK252","IMK0004"],
+  "GAA460":["GAA857","GAA769","GAA762","GAA144","GAA128","IAA0079","GAA229","GAA546","XAA007"],
+  "GAA762":["GAA144","IAA0079","GAA128","GAA229","GAA546","XAA007"],"GAA144":["IAA0079","GAA128","GAA229","GAA546","XAA007"],
+  "GAA720":["GAA397"],"GAA769":["GAA762","GAA144","GAA128","GAA229","IAA0079","GAA546","XAA007"],
+  "GJR006":["GAJ512","GAJ355","GAJ478","GAJ356"],"GAF062":["GAF332","GKC278","IAF0013"],"GKC235":["GKC576","GKC540"],
+  "GMK044":["GMK016","GMK185","GMK223","SIAA028"],"GAJ042":["GAJ239","GAJ269","GAJ299"],
+  "GKR002":["GAA489","GAA855","GAA719","GAA580","IAA0146","XAA010"],
+  "GAA701":["GAA845","GAA684","GAA490","GAA623","GAA686","GAA800","GAA398","CAM375"],
+  "GAA490":["GAA623","GAA800","GAA686","GAA398"],"GAF058":["SAF049","GAF546"],"GAJ021":["GAJ018","GAJ226","GAJ372"],
+  "GKC059":["GKC069"],"GKC085":["GKC225","SIHA054","SIKC016","SKC008"],"GAF031":["IAF0011","IAF0029"],
+  "GAA001":["GAA056","GAA318","IAA0121"],"GHA126":["GHA450","GHA369","GHA378","GHA379"],"GMK012":["GMK065","GMK229"],
+  "GAJ174":["GAJ173","GAJ428","GAJ291","GAJ294"],"GAR005":["GAJ136","GAJ160","CAM430","GAA466","GAJ135"],
+  "GAJ182":["GAJ200","GAJ276"],"GAJ111":["GAJ277","IAJ0003"],"GKC119":["SIKC023","IAF0042","IKC0069"],
+  "GAF049":["SAF015"],"GAA071":["GAA203","GAA338","SAA018","SAA020"],"GAA025":["GAA094","GAA293","GAA311"],
+  "GAA086":["GAA068","IAA0094"],"GHA111":["GHA073","IAA0103","IKC0019","IKC0161"],
+  "GKC031":["IAA0008","IAA0036","IKC0104","XKC013"],"GAA073":["GAA213","GAA371"],"GAF117":["SAF039"],
+  "GMK009":["IAA0097","GMK275"],"GKR001":["GAA709","GAA871","GAA360"],"GAF054":["GAF340"],
+  "IAF0031":["IAF0032","IAF0085","IAF0086"],"IAF0022":["IAF0030","IAF0083","IAF0084"],"GKC145":["GKC209","IAA0050","SKC015"],
+  "GAF113":["GAF188","GAJ169"],"GMK028":["GMK315"],"GKC161":["GAJ305","GKC133","GKC292"],
+  "GMK046":["GMK177","GMK222"],"GHA123":["GHA181","GHA434"],"GAA313":["SAA060","SIAA011","GAA731"],
+  "GHA321":["GHA300","IHA0010"],"GKR005":["GAA231","GAA254","GAA138","GAA166","GAA219","GAA424","GAA869","GAA365","GAA117","GAA255"],
+  "GKC070":["IAA0029","IKC0057","IKC0059","IKC0239","IKC0223"],"GHA323":["GHA353"],
+  "GAF091":["GAF109","GAF236","SAF046","GAF356"],"GAF003":["GAF100","GAF249","GAF339"],
+  "GAJ045":["GAF222","IAJ0001","GAF259","GKC241"],"GHA069":["GHA336","SIHA049","IAA0087"],
+  "GAA060":["GAA102","IAA0063","GAA693"],"GAF169":["GAF251","GAF068"],"GAA177":["GAA618","GAA764","GAA601"],
+  "GAA618":["GAA764"],"GAA089":["GAA868","SIAA012","IAA0092"],"GAA868":["IAA0092","SIAA012"],"IAA0092":["SIAA012"],
+  "GAA200":["GAA310","IAA0059","IAA0104"],"GJR007":["GAJ519","GAJ518"],"GAJ316":["CAM291"],"GAJ168":["GAJ354","GAJ391"],
+  "GKC476":["GAJ412","SIKC037","GKC580"],"GKC226":["GKC324","GKC577"],"GKC468":["GKC329"],
+  "GAJ166":["GAA846","GAJ522","GAJ132","GAA233","GAA243","GAJ549"],"GAJ522":["GAJ132","GAA243","GAA233","GAJ549"],
+  "GAJ549":["GAJ132","GAA233","GAA243"],"GAF199":["IAF0027","IAF0094"],"GMK010":["GMK338"],"GKC162":["SKC023"],
+  "GKC158":["GKC155"],"GKC302":["CAM335","GAA707","GKC444"],"GAJ100":["GAJ314","GAJ279","GAJ373"],
+  "GKC301":["GKC446"],"GAJ104":["GAJ240"],"GAF106":["GAF230"],"GAJ054":["GAJ293","CAM347"],"GAF065":["GAF165","GAF290"],
+  "GHA113":["GHA301","IHA0029","IHA0028"],"GMK066":["GMK015"],"GAF115":["CAM292","GAF526"],
+  "GAA256":["GAA582","GKR006","GAA583","GAA654","GAA652","GAA666"],"GAJ105":["GAJ435","GAJ394"],"GAJ236":["GAJ209","GAF518"],
+  "GAF492":["GAF419","GAF427","GAF421"],"GMK040":["GMK227","SIMK011"],"GAJ362":["GAJ121","GAJ361","GAA604","GAJ364"],
+  "GAA365":["GAA117","GAA255"],"GAA117":["GAA255"],"GAA033":["GAA335"],"GAF127":["GAF521"],
+  "GAA138":["GAA219","GAA365","GAA117","GAA255"],"GAA254":["GAA138","GAA219","GAA166","GAA365","GAA117","GAA255"],
+  "GAF167":["GAF043","GAF395"],"GAA692":["GAA673","GAA116","GAA737"],
+  "GAA865":["GAA239","GAA235","GAJ157","GAJ134","IAJ0014","IAA0101"],
+  "GAJ610":["GAA865","GAA239","GAA235","GAJ157","GAJ134","IAJ0014","IAA0101"],
+  "GAA239":["GAA235","GAJ157","GAJ134","IAJ0014","IAA0101"],"GMK074":["GMK207","GMK319"],"GAJ049":["SAJ013"],
+  "GAA214":["GAA554"],"GKC027":["IKC0211","IKC0256"],"GAJ388":["GAJ148","GAJ319","GAJ582","GJR001"],
+  "GAJ582":["GAJ148","GJR001","GAJ319"],"GAJ580":["GAJ581"],
+  "GKC052":["GAJ356","GAJ148","GAJ319","GAJ584","GAJ582","GJR001","GAJ388","IAJ0011","GAJ514","GAJ357"],
+  "GAJ356":["GAJ357","GAJ514","IAJ0011"],"GHA056":["GHA471"],"GMK217":["GMK188","GMK226"],
+  "GMK159":["GMK204","GMK183","SIMK014","SIMK012"],"GKC203":["GKC490","IKC0157"],"GKC336":["GKC114","GKC574"],
+  "GKC125":["IKC0154","IKC0158"],"GAJ113":["GAJ340"],"GAJ187":["GAJ339"],"GKC042":["IKC0221","IKC0111","IKC0222"],
+  "GAJ101":["GAJ343","GAJ235"],"GAA037":["GAA030","SIAA072"],"GAA030":["SIAA072"],"GAF323":["GAF135","GAF540","SIAF024"],
+  "GKC250":["IKC0264","GKC204"],"GMK085":["GMK293","GMK195"],"GAA044":["IAA0125","IAA0004"],"GAA036":["GAA019"],
+  "GAA043":["GAA036","GAA019"],"GMK181":["IHA0062","IAF0063","IAF0064","GHA359"],
+  "GAJ052":["GAF524","IKC0200","IKC0201","SAF051"],"IKC0200":["IKC0201"],"GAF101":["GMK056","GHA064","IMK0031","SIHA001","GAF391"],
+  "GMK056":["SIHA001","IMK0031"],"GAJ046":["GAJ349"],"GMK072":["GAJ252","GAJ475","GAJ347"],"GAJ051":["GAJ196","GAJ375","GAJ307"],
+  "GAJ207":["XAJ001","IAJ0010"],"GHA326":["GHA445","GHA521","SIHA025","IAA0058","IHA0038","SIHA005"],
+  "GHA445":["SIHA025"],"IHA0038":["SIHA005"],"GAF355":["IAF0072"],"GKC148":["SHA090","GKC533","GKC243","GKC097"],
+  "GKC077":["IKC0181","IKC0061","IKC0062","IKC0227","IKC0182"],"IKC0181":["IKC0182"],"GKC163":["GKC443","IKC0108","GKC448"],
+  "GAA410":["GAA671","GAA658"],"GKC156":["GKC467"],"GKC087":["IAF0057","GKC237","IAF0073"],"GAA285":["GAA722","GAA773"],
+  "GKC099":["IKC0114","GKC586"],"GAF081":["IAF0052","GAF439","GAF459","GAF405"],"IAF0052":["GAF405"],"GAF080":["GAJ441"],
+  "IAF0050":["IAF0051"],"GAF108":["IAF0054"],"GKC023":["IKC0242","IKC0257","IKC0231","IKC0260"],
+  "GAF020":["GAJ406","SIAF026","IKC0214","GAF523"],"GAJ406":["IKC0214","SIAJ026"],"GAA309":["SAA018","IHA0015"],
+  "GHA264":["IHA0041","SIAA070"],"GAF228":["IAF0058","GAF192"],"GHA043":["SIHA056","IHA0006"],"GHA174":["GHA311"],
+  "GAA227":["XAA009","IAA0065"],"GAA196":["SIAA067","GAA757"],"GKC051":["IKC0234","SIKC014","IKC0252"],"GAA248":["GAA752"],
+  "GHA296":["IHA0060","IHA0014"],"GKC062":["XKC016","IKC0075","IAA0022"],"GAA341":["GAA431"],"GKC473":["GAJ399","GKC480"],
+  "GKC466":["GKC297","GKC494"],"GMK251":["GMK027","SAA068","IMK0022","SMK006"],
+  "GHA059":["IAA0072","IHA0061","GMK212","IHA0001"],"GHA068":["GHA075","GHA384","IHA0044","GHA437"],
+  "GAA145":["GAA186","GAJ369","GAJ368","GAJ367"],"GAA186":["GAJ367"],"GAJ369":["GAA186","GAJ367"],
+  "GHA017":["SHA017","SHA018","SHA024"],"GAF012":["GAF057","GAF280","XKC006","GAF272"],
+  "GAJ081":["GAJ091","GKC544","GAJ334","GAJ085","GKC164","GKC165","GAJ190"],"GHA155":["GHA098","GHA350","IHA0032"],
+  "GAJ115":["GAJ268","IAJ0026"],"GAJ025":["GAJ284"],"GAF137":["GAF145","GAF196","GAF352"],
+  "GHA144":["CAM198","GHA362","IHA0051"],"GHA044":["GHA344","IAA0057"],"GKC046":["IKC0219","IKC0224","IKC0253","SIKC003","SIKC006"],
+  "GAF114":["GAF371","GAF175"],"GAJ080":["GAJ091","GKC544","GAJ334","GAJ085","GAJ190","GKC164","GKC165"],
+  "GHA046":["SIHA039","GHA407"],"GKC131":["GKC093","GKC115","GKC195","IAF0012"],"GAA103":["GAA105","GAA609","GAA143"],
+  "GKC194":["GKC193","GKC305"],"GKC160":["SKC023","GKC162"],"GKC231":["GKC475","GKC213","GKC498"],
+  "GAR009":["SAJ027","SAJ026","SAJ029","SAJ030","SAJ022","SAJ023","SAJ028","GAJ513"],"GAA061":["GAA112","GAA638","GAA317"],
+  "GAF075":["CAM259","SIAF010"],"GHA142":["GHA175","GHA177","IMK0037","GMK308","GHA196"],"GMK308":["IMK0037"],
+  "GAA199":["GAA324","SAA059","SIAA043"],"GAJ031":["GAJ047","SIAJ020"],"GHA091":["GHA338","IKC0002","SHA041"],
+  "GKC071":["GKC117","GKC176","GKC321"],"GHA168":["GHA432"],"GMK081":["GMK082"],
+  "GAJ092":["GAJ091","GKC544","GAJ334","GAJ085","GAJ190","GKC164","GKC165"],"GHA038":["IKC0025"],"GAJ107":["GAJ041"],
+  "GAJ064":["GAJ107","GAJ041"],"GMK061":["GMK055","GMK088","GMK202","GMK201","IMK0014","IMK0025"],
+  "GMK088":["GMK202"],"GMK051":["GMK160","GMK196"],"GAA329":["GAA533"],"GAA182":["GAA131","GAA760","GAA694","GAA856","GAA393"],
+  "GAJ140":["GAJ529"],"GAJ147":["GAJ133","GAJ150"],"GAJ084":["GAJ334","GKC165","GAJ091","GKC544","GKC164","GAJ085","GAJ190"],
+  "GAR004":["SAJ027","SAJ030","SAJ026","SAJ022","SAJ023","SAJ028"],"GAA218":["GAA388","GAA426","GAA432","GAA541"],
+  "GMK021":["GMK241","SAA057","GMK246"],"GHA028":["IHA0042","SHA042"],"GAA307":["GAA534","GAA539"],
+  "GAJ123":["GAJ216","SAJ005","SIAJ001"],"GMK035":["SMK010"],"GAJ067":["GAR003","GAR008","GAR002","GAJ262"],
+  "GAF099":["GAF285","GAF291"],"GKC040":["IKC0192","SIKC021","IKC0148","IKC0217"],"GAF172":["GAF173"],
+  "GAA097":["GAA458"],"GMK189":["GMK242","GMK247"],"GAF059":["GAF333","CAM309"],"GAJ141":["GAJ417","GAJ098","GAJ456","GAJ516"],
+  "GAJ353":["GAJ066","GAJ556","GAJ273","GAJ076"],"GAA009":["IAA0105","IAA0147","SAA003"],
+  "GKC230":["XAJ002","GKC287","GKC322"],"IAA0023":["IKC0065"],"GAA287":["GAA508","GAA758"],
+  "GAJ122":["GAJ237","GAJ310"],"GHA042":["GHA424"],"GAA266":["GAA428","SAA026","SAA034"],
+  "GAF005":["GAF337","GAF365","GAF370"],"GHA082":["IKC0243"],"GHA303":["IHA0047"],"GAA028":["GAA593","GAA683"],
+  "GAJ154":["GAJ384","GAJ396","GAJ403"],"GAJ066":["GAJ556","GAJ273","GAJ076"],"GKC474":["GKC263","GKC471","GKC441"],
+  "GAF087":["GAA149","GAF248","GAF453","IMK0032","GAJ243","IMK0007"],"GAF453":["GAJ243"],
+  "GKC094":["GKC325","IKC0299","IKC0014","IKC0203"],"GAA110":["GAA471"],
+  "GKC279":["IAF0025","IKC0151","IKC0263","GKC125","IKC0154","IKC0158"],
+  "GAF156":["GAF456","IAF0055","IAF0056(5G)","GAF404","IAF0053(5G)"],"GAJ191":["GAJ344"],
+  "GAF404":["IAF0053(5G)","IAF0056(5G)","IAF0055"],"GAJ050":["GAJ288","GAJ352","GAJ521"],
+  "GMK039":["SIAA055","GMK059","GMK182"],"GMK059":["GMK182"],"GMK037":["GAA543","GMK236","SIAA071"],
+  "GAA543":["SIAA071"],"GKC137":["IKC0116","IKC0129","IKC0145"],"GAA126":["GAA124","GAA125","GAA230","SIAA013"],
+  "GAA866":["GAA170","GAA176","GAA160","GAA236"],"GAA152":["GAA171","SAA001","GAA234"],
+  "GAR003":["GAR008","GAR002","GAJ262"],"GAJ026":["GAJ335","SAJ011"],"GHA024":["SHA047"],
+  "GAJ106":["GAJ274","GAJ290"],"GHA092":["SHA003","SHA004"],"GAA087":["GAA107","GAA240","GAA053","GAA672","IAA0109"],
+  "GAA107":["GAA240"],"GAF105":["CAM221","IAF0001","GAF349"],"GAF182":["GKC310"],"GHA273":["GHA422","IHA0016"],
+  "GAF009":["IAF0026","IAF0010","IAF0003"],"GAJ109":["GAJ485","GAJ558"],"GAJ029":["GAJ275","SAJ015","GAJ341","GAJ278"],
+  "GAA012":["SAA063"],"GAA247":["IAA0071","IAA0107"],"GAA331":["GAA510","GAA634","SAA048"],
+  "GHA120":["GHA265","SHA058"],"GAF353":["GAF282","SAF025","IAF0005","IAF0002"],
+  "GAF030":["IAF0023","GAF412","SIAF038"],"GAA109":["IAA0112","XAA006","IAA0119"],
+  "GAR007":["GAJ429","CAM437","GAJ387","GAR006"],"GKC215":["IKC0160","IKC0262","GKC218","XKC028","IKC0171"],
+  "GAA170":["GAA160","GAA176","GAA236"],"GAA171":["GAA234"],"GAA178":["GAA238","GAJ224","GAJ363"],
+  "GAA252":["GAA147","GAA125","SIAA013"],"GAJ091":["GAJ085","GKC544","GAJ190"],
+  "GAJ128":["GAJ432","GAJ259","GAJ517","GAJ476"],"GAR008":["GAR002","GAJ262"],"GMK063":["GMK208","GMK171"],
+  "GAJ136":["GAA466","GAJ135"],"GHA036":["GAJ523","GAJ166","GAA846","GAJ520","GAJ522","GAA233","GAJ261","GAJ132","GAA243","GAJ549"],
+  "GAJ520":["GAJ523"],"GAJ142":["GAJ588","CAM131"],"GAJ366":["GAJ360","GAA181","GAJ304"],
+  "IKC0008":["IKC0009","IAF0024"],"GAJ015":["GAJ296","GAJ219","GAJ313"],"GHA004":["IKC0003","XKC073"],
+  "GAA005":["SAA065"],"GAF146":["GAF315"],"GHA006":["IHA0067","CAM397"],"GHA505":["GHA005"],
+  "GKC047":["GKC502","XKC005"],"GAF006":["GAF281","GAF260","IAF0075"],"GAF193":["GAF517"],
+  "GAF153":["GAF242"],"GAF071":["GAF388"],"GKC239":["IKC0005"],"GAF239":["GAF535","GAF534"],
+  "GAF535":["GAF534"],"GAF202":["GKC464","SIAF009"],"GHA061":["GAF362"],"GKC185":["SAA039"],
+  "GAJ118":["SAJ002","IAJ0019","SIAJ003","GAJ030"],"GMK075":["GMK253","GMK192"],"GAA296":["IMK0024","IMK0028"],
+  "GHA298":["IHA0026","SHA020"],"GAA189":["GAA522"],"GAF032":["SIAF045","SIAF044","SIAF003"],
+  "GAF121":["GAF359"],"GAF148":["GKC320","SAF022"],"GAA013":["GAA488","GAA362"],"GAA175":["GAA532","GAA475"],
+  "GKC229":["GKC468","GKC463","GKC329"],"GAA244":["GAA184","GAA767","XAA032","GAA127","GAA771","GAA526"],
+  "GAA125":["GAA230","SIAA013"],"GAA128":["GAA229"],"GAA135":["GAA164"],"GAA160":["GAA236","GAA176"],
+  "GAJ085":["GAJ190"],"GAJ556":["GAJ076"],"GAJ129":["GAJ144"],"GAJ220":["IAJ0002"],"GAR002":["GAJ262"],
+  "GHA248":["IKC0121"],"GJR002":["GAJ060","GAJ502","CAM435","CAM379","GAJ600","GAJ493","GAJ569","GAJ597","GAJ506"],
+  "GAJ600":["GAJ506"],"GAJ569":["CAM379"],"GAJ502":["GAJ597","CAM379","GAJ569"],
+  "GKR003":["GAA359","GAA167","GAA581","4081(KPICcameraSharedsite)","GAA713","GAA343"],"GMK001":["GAA289"],
+  "GMK155":["GMK053","IMK0001","IMK0011"],"GKC004":["IAA0032","IAA0024"],"GAJ148":["GJR001","GAJ319"],
+  "GAA098":["GAA500"],"GAA048":["IAA0102","GAA545"],"GAA149":["IMK0007","IMK0032"],"IMK0007":["IMK0032"],
+  "GAA841":["GAA504","GAA223","GAA639","GAA659","GAA811"],"GAA504":["GAA659"],"GKC207":["GKC147","GKC527"],
+  "GKC149":["GKC293","GKC534","GKC523"],"GHA183":["IHA0046","IHA0036","IHA0011"],"GMK026":["GMK323","GMK321"],
+  "GAA378":["GAA425"],"GHA306":["XHA005"],"IKC0125":["IKC0216"],"GMK062":["GAF140"],"GKC165":["GKC164"],
+  "GMK240":["SMK005","GMK288"],"GMK027":["SMK006"],"GAA273":["GAA396"],"GAA115":["GAA741"],
+  "GAA843":["GAA274","GAA620"],"GAA274":["GAA620"],"GAA770":["GAA805","GAA859"],"GAA546":["XAA007","GAA128","GAA229"],
+  "GHA107":["CAM176","GKC568"],"GAA549":["GAA630","GAA578","GAA527"],"GAA147":["GAA126","GAA124","GAA125","GAA230","SIAA013"],
+  "IKC0132":["IKC0133"],"GKC102":["IKC0132","IKC0133"],"IAA0035":["IAA0019"],"GAA111":["SAA014"],
+  "GHA088":["IAA0026"],"IAA0037":["IAA0038"],"IAA0060":["IAA0061"],"IAA0083":["IAA0084"],
+  "IKC0062":["IKC0061"],"IKC0007":["IKC0077"],"IKC0036":["IKC0078"],
+  "GAF084":["IKC0018","IKC0304","SIAF002","XAF084"],"IKC0154":["IKC0158"],"IKC0019":["IKC0161"],
+  "GHA418":["GHA386","SHA008"],"GKC447":["SIAF040","GKC205"],"GKC201":["GHA429","SHA002"],"GAA270":["GAA776"],
+  "GMK029":["SIAA040","GMK301"],"GKR008":["SAA041","GAA137","GKR007","GAA618","GAA601","GAA177","GAA764","GAA795"],
+  "GKR007":["GAA618","GAA764","GAA601","GAA177"],"GHA159":["IHA0052"],"IAA0117":["IAA0118"],
+  "GAA306":["GAA696","GAA730"],"GAJ232":["GAJ413"],"GAJ024":["GAJ414"],"GKC078":["SKC012","IKC0029","IKC0270"],
+  "GAF044":["PAF003","GAF213","SIAF053","XAF063"],"GHA294":["CAM229","IHA0072"],
+  "GAA083":["IAA0120","GAA108","IAA0021","GAA054"],"GAA226":["GAA590","SAA062"],"GAA058":["SAA051","GAA781","GAA409"],
+  "GHA148":["GHA481","GHA245"],"GMK024":["GMK295"],"IHA0028":["IHA0029"],"IMK0006":["IMK0009","IMK0010"],
+  "IKC0135":["IKC0139","IKC0140"],"GKC182":["SKC018","GKC465","SKC024"],"IKC0229":["IKC0230"],
+  "GKC175":["IAF0076","IKC0194","GKC127","GKC511"],"GKC177":["IAF0071","IKC0015"],"GHA401":["GHA425"],
+  "GAJ178":["SAJ018","IAJ0015"],"GAF024":["SAF047"],"GAF019":["IAF0053","GAF522","GAF442","IAF0056"],
+  "GKC471":["GKC441"],"GKC180":["SKC019","GHA284"],"GAF186":["GAF185"],"GAF128":["GAF344"],
+  "GHA058":["IAA0073"],"GAJ311":["GAJ280"],"GKC009":["IKC0091","SIKC038","IKC0101"],"IKC0101":["SIKC038"],
+  "GHA261":["GHA200","GHA330"],"GKC140":["SIKC024"],"GAA271":["XAA011"],"GAA343":["GAA581"],
+  "GAF152":["GAF243","GAF205"],"IAJ0005":["XAJ004"],"GAF082":["GAF384","GAF235","GAF211"],
+  "GKC475":["GKC213"],"GKC002":["IKC0251","GKC582","IKC0249"],"GAJ201":["GAJ350","IAJ0023","GAJ472"],
+  "GKC197":["GKC096","GKC098"],"GAA580":["XAA010","IAA0146"],"GHA192":["GHA375"],"GAF011":["GAF383"],
+  "GAA551":["GAA587","GAA408","GAA133","GAA341","GAA807","GAA431","GAA682","GAA670"],
+  "GKC081":["GKC449","IAA0002","GKC216"],"GKC154":["GHA409","SKC022","SIHA002","GKC200"],
+  "GMK052":["GAF163","IMK0013","GAF481","GMK306"],"GAF226":["GAF036","IAF0091"],"GHA404":["GHA516","GHA161"],
+  "GAJ034":["GAJ309","GKC184"],"GHA131":["GHA370"],"GKC192":["GKC128","SIKC018"],"GKC128":["SIKC018"],
+  "GHA417":["GHA410","GHA423"],"GAA284":["GAA389","GAA421"],"GAF022":["GAJ055","GAF090","GAF179"],
+  "GAF017":["GAF245"],"GHA094":["GHA172","GHA381"],"GAJ102":["GAJ374","GAJ613","GHA062"],"IKC0238":["IKC0237"],
+  "GAJ089":["GMK233","GMK347","GMK298"],"GMK045":["GMK258","GMK300","GMK287"],
+  "GHA074":["CAM369","SHA060","IKC0022","GHA219"],"GAF215":["GAF324","CAM431"],
+  "GKC153":["GHA065","SIKC009","GKC262","GKC405"],"GKC112":["GKC332","GKC507"],"GHA097":["GHA339"],
+  "GMK014":["GMK239"],"GMK036":["CAM132"],"GAJ020":["GAJ337","IAJ0007","IAJ0013"],"GHA060":["GHA315","GHA495"],
+  "GMK023":["GMK303","IAA0128","GHA470","SIMK016"],"GHA470":["SIMK016"],"GHA164":["GHA268"],"GHA249":["XHA004"],
+  "GAF097":["GAF208","GAF449"],"GAA035":["GAA436","GMK333","GAA820"],"GAF142":["GAF287"],
+  "GKC269":["GKC202","CAM429"],"GAA607":["GAA803","GAA799","GAA690","GAA622"],"GAA690":["GAA803"],
+  "GAA622":["GAA799"],"GAA641":["GAA395"],
+  "GAA735":["GAA607","GAA690","GAA622","GAA799","GAA496","GAA803","IAA0138","GAA640","CAM377"],
+  "GAJ117":["GAJ002","SIAJ007"],"GAJ006":["GAJ286","GAJ515"],"GAJ099":["GAJ199"],"GAF034":["IAF0059"],
+  "GAF026":["GAF406"],"GKC130":["GKC497","IKC0288"],"GAA029":["GMK218"],"GAJ188":["GAJ063"],
+  "GAF064":["IAF0043"],"GKC067":["IKC0206","IKC0183","IKC0195"],"GHA079":["GMK213","IHA0071","GHA242"],
+  "GKC036":["IKC0128","IAA0037","IAA0038","IKC0186"],"GHA114":["GAJ090","SHA050","GHA376"],
+  "IAF0065":["IAF0061","IAF0067"],"GHA118":["GHA267"],"GHA016":["GHA335","IHA0008"],"GMK055":["IMK0025"],
+  "GAA496":["GAA640"],"GAF027":["IAF0069","IKC0085","IKC0086","SIKC027"],"GAF037":["GAF407","GAF284"],
+  "GAA837":["GAA657","GAA544","GAA802"],"GAF263":["GAF178"],"GHA310":["GHA153","GHA189"],
+  "GAF088":["GAF466","GAF415"],"GAF415":["GAF466"],"GAF461":["GAF467","GAF550"],"GAF083":["GAF461","GAF550","GAF467"],
+  "GAF467":["GAF550"],"GAJ137":["GAJ181"],"GAJ172":["GAJ292","GAJ287"],"GAA188":["IAA0130","GAA418"],
+  "GAF112":["IAF0015","SIKC007","SIKC032"],"GAF073":["GAF326"],"GAJ124":["GAJ066","GAJ556","GAJ273","GAJ353","GAJ076"],
+  "GHA251":["IHA0069","SIHA007"],"GKC190":["GKC524"],"GMK077":["GMK221"],"GKC249":["GKC553","SIKC039"],
+  "GKC553":["SIKC039"],"GHA071":["GHA197","IHA0017","GMK335","GHA528"],
+  "GAA600":["GAA547","GAA750","GAA176","GAA866","GAA763","GAA170","GAA160","GAA236"],
+  "GAA750":["GAA547","GAA763","GAA866","GAA176","GAA170","GAA160","GAA236"],
+  "GMK269":["GMK264","GMK302","GMK296","GMK294"],"GAA540":["GAA667","GAA653"],"GAA479":["GAA154","GAA628"],
+  "GAA550":["GAA572","GAA629"],"GAA548":["GAA611","GAA829"],"GAA560":["GAA662","GAA850","GAA651"],
+  "GMK005":["GMK076"],"GAF201":["GAF438","IAF0007"],"GAA596":["GAA613","GAA573"],"GAA599":["GAA584","GAA627"],
+  "GAA563":["GAA826","GAA660"],"GAA482":["GAA478","GAA161","GAA650"],"GAA184":["XAA032","GAA767"],
+  "GAA767":["XAA032"],"GHA318":["GHA201"],"GAA468":["GAA761"],"GKC196":["GKC525","SIKC287"],
+  "IAF0040":["SIAF055"],"GAJ195":["GAJ194"],"GAA299":["SAA047"],"GHA070":["IHA0070","GHA244","GHA312","GHA363","GHA549"],
+  "GHA312":["GHA549"],"GAA223":["GAA639"],"GKC038":["IKC0055","IKC0259","IKC0036","IKC0078"],
+  "GKC043":["XKC003","IKC0013","IKC0229","IKC0230"],"GAA112":["GAA638"],"GKC136":["GKC187"],
+  "GAF077":["GHA313","GHA475"],"GHA313":["GHA475"],"GMK084":["GMK305","GMK292"],"GAA623":["GAA686","GAA800","GAA398"],
+  "GAA686":["GAA398","GAA800"],"GMK034":["GMK211"],"GAJ011":["IAJ0012","GAJ183"],"GHA271":["IHA0048"],
+  "GKC339":["GKC528"],"GAA606":["XAA031"],"GKC222":["IKC0031"],"GAA393":["GAA131","GAA856","GAA760","GAA694"],
+  "GAA131":["GAA760","GAA694"],"GAA760":["GAA694"],"GAA384":["IAA0142"],"GMK083":["SIAA052","IMK0027"],
+  "GAA732":["GAA695","GAA468","GAA761","GAA765"],"GAA695":["GAA468","GAA761","GAA765"],"GHA130":["IHA0068/GHA533"],
+  "GAA737":["GAA116","GAA673"],"GKC080":["GKC546","IKC0004"],"GKC216":["IAA0002"],
+  "GHA285":["GHA077","IHA0003","GHA357","GHA240"],"GKC012":["IKC0258","IKC0265"],
+  "GAA521":["IAA0149","SIAA006","IAA0113"],"GKC252":["IAF0082","XKC026"],"GMK067":["IMK0026"],
+  "GKC199":["IKC0271","IAA0019","IAA0035"],"GAJ036":["GAJ038","GAJ477"],"GAJ038":["GAJ477"],
+  "GAF490":["GAJ440","GAF537"],"GAF487":["GAF435","GAF431","GAF429"],"GHA146":["IAA0083","IAA0084"],
+  "GKC308":["GAJ474","GKC301","GKC446"],"IKC0169":["IKC0170"],"GAA228":["IAA0150"],"GAA197":["GAA734"],
+  "SIAA024":["IAA0129","IAA0020"],"GKC146":["IHA0073"],"GAA139":["GAA558"],"GAF104":["GAF279"],
+  "GAA211":["GAA511"],"GKC183":["IKC0103"],"GAA096":["GAA378","GAA425"],"GAA283":["GAA401"],
+  "GAA146":["GAA316","GAA126","GAA124","SAA056","GAA230"],"GAA350":["GKR013"],"GAA008":["GAA350","GKR013"],
+  "GKC440":["GKC530","GKC564"],"GHA295":["IHA0075"],"GAJ110":["GAJ112","GAJ250"],"GAA419":["IAA0108","SIAA008"],
+  "GHA093":["GHA088","IAA0060","IAA0061","IAA0026"],"IMK0008":["IMK0012","IMK0018"],"IMK0010":["IMK0009"],
+  "GMK205":["GMK268"],"GMK058":["IAA0086"],"GAF162":["IMK0036","GAF441","XMK002"],
+  "GKC025":["IKC0207","IKC0043","IKC0056","IKC0141"],"GAF240":["IKC0122","GAF411","SIAF004"],
+  "GKC079":["IKC0156"],"GMK031":["GMK297"],"GAA280":["IAA0010"],"GAA206":["GAA605"],"GAF161":["GKC559"],
+  "IAF0080":["IAF0008","IAF0018","IAF0016"],"GAA654":["GAA652"],"GKC284":["IKC0272"],"GAA054":["IAA0021"],
+  "GAA332":["GAA207"],"GMK038":["GMK313"],"GMK060":["GAF143","SIMK003","SIMK015","IMK0005"],
+  "GAA628":["GAA154"],"GAA319":["IAA0151","SIAA014"],"GAA243":["GAJ478","GAA233"],
+  "GAJ132":["GAJ478","GAA233","GAA243"],"GAA133":["GAA807","GAA682","GAA670"],"GAA494":["GAA417","GAA852"],
+  "GAA417":["GAA852"],"GAA682":["GAA670","GAA807"],"GHA100":["GHA510","IHA0066"],
+  "GAA755":["GAA714","CAM336","GAA695","GAA468","GAA761","GAA765","GAA732"],"GAJ574":["GAJ594"],
+  "GAJ495":["GAJ545","GAJ529","GAJ140","GAJ632","GAJ620","GAJ541","GAJ575"],"GAJ545":["GAJ140","GAJ529"],
+  "GAJ575":["GAJ541","GAJ620"],"GHA221":["IHA0050"],"IAF0010":["IAF0003"],"GAJ037":["IKC0233","SIKC042","GAJ035"],
+  "GHA218":["IAA0088","NHA452","NHA453"],"GHA352":["GHA454"],"GHA236":["GHA204"],"IAF0005":["IAF0002"],
+  "GKC016":["IKC0023","IKC0255","IKC0063"],"GKC541":["IKC0027","IKC0126","IKC0028"],
+  "GHA154":["SHA052","IMK0030","GMK256","GHA544"],"GAA261":["GAA121"],"GAA544":["GAA802"],
+  "GHA009":["GHA506","IHA0063"],"GAA669":["GAA721","SAA074"],"GAA526":["GAA127","GAA771"],
+  "GAA127":["GAA771"],"GAA394":["GAA273","GAA396"],"GAA507":["GAA724"],"GAA765":["GAA468","GAA761"],
+  "GAA847":["GAA768"],"GAA547":["GAA170","GAA176","GAA866","GAA160","GAA763","GAA236"],
+  "GKC037":["IKC0044","SIKC035","SKC026"],"GAA503":["SIAA007","IAA0070"],"GAJ357":["GAJ514"],
+  "GAA323":["GAA567"],"GAJ551":["GAJ546","GAJ489","GAJ562","GAJ492","GAJ497","GAJ488","GAJ578"],
+  "GAJ492":["GAJ497"],"GAJ546":["GAJ562"],"GAJ489":["GAJ488","GAJ497","GAJ492"],"GAJ488":["GAJ492","GAJ497"],
+  "GAJ496":["GAJ576","GAJ634"],"GKC086":["XKC020"],"GAA367":["GAA685","IAA0066"],"GKC470":["IKC0047"],
+  "GAJ039":["GAF076","GAF525","GAF519"],"GAA754":["GAA205","GAA135","IAA0093","GAA164","GAA304"],
+  "GAF110":["GAF454","GAF450","GAF468"],"GAF454":["GAF468"],"GAA022":["IAA0062","GAA851"],
+  "GAA780":["GAA751"],"GHA141":["GHA229","IHA0058"],"GMK011":["GMK231"],"GKC547":["GKC567","GKC120"],
+  "GHA405":["IHA0004"],"GAF374":["IAF0044","CAM410","GAF469"],"GHA325":["IHA0007"],"GAA472":["SIAA002","IAA0089"],
+  "GAA235":["GAJ157","GAJ134"],"GAJ157":["GAJ134"],"GMK157":["IHA0019"],"GKC157":["GKC312"],
+  "GAA587":["GAA341","GAA431"],"GHA169":["IHA0021","IHA0079"],"GAJ225":["GAJ234"],
+  "GAF063":["GAF460","GAF321"],"GAJ481":["GAJ505"],"GKC220":["SIKC031"],
+  "GMK006":["GMK209","IMK0035","GMK346","GMK324"],"GKC318":["GKC492","GKC158","GKC481","GKC155"],
+  "GKC492":["GKC158","GKC155"],"IKC0099":["XAJ005"],"GAA173":["GAA818"],"GKC186":["GKC563","GHA498"],
+  "GAF029":["GAF292"],"GHA289":["SIHA003"],"GKC123":["IKC0070","SIKC034","IKC0196","IKC0106","IKC0071"],
+  "IKC0070":["IKC0071"],"GAJ056":["GAJ334(5G)"],"GAF170":["GAF176","GAF346"],"GAJ175":["GAJ376"],
+  "GAF164":["GAF389"],"GMK158":["GMK307"],"IKC0261":["IKC0010","IKC0198"],"GAJ176":["GAJ179","GAJ612"],
+  "GHA231":["GHA248","IKC0121"],"GAJ163":["CAM131"],"GAA275":["GAA645"],"GMK043":["GMK310"],
+  "GAA105":["GAA609"],"GAF177":["GAF364"],"GHA512":["IHA0030"],"GHA139":["IMK0002","SIHA009"],
+  "GHA108":["GHA334","GHA340"],"GKC306":["IKC0225"],"GMK073":["GMK325"],"GKC035":["SIKC004"],
+  "GAF174":["GAF293","IKC0123"],"GAF293":["IKC0123"],"GAA670":["GAA807"],"GHA514":["GHA416","CAM185"],
+  "GKC554":["IKC0034","IKC0284","SIKC036"],"IKC0147":["IAA0027","IKC0162"],"GAA429":["GAA808"],
+  "GAF015":["IAF0078","IAF0087","IAF0047"],"GAF023":["GAF021"],"GAJ126":["GAJ345","GAF520"],
+  "GAJ345":["GAF520"],"GKC179":["GKC578"],"GKC076":["IKC0054","IAF0077","GAF074"],"GAF074":["IAF0077"],
+  "GMK053":["IMK0001"],"GAF194":["IKC0172","IAF0019","GAF483"],"GMK164":["IMK0020"],"GKC172":["IHA0078"],
+  "GAJ003":["GAJ022","IAJ0021","SAJ019"],"GAJ022":["IAJ0021"],"GAA042":["GAA778"],"GHA116":["GHA147","GHA367"],
+  "GKC116":["IKC0074"],"IKC0085":["IKC0086"],
+  "GAJ501":["GAJ574","GAJ607","GAJ594","GAJ534","GAJ589","GAJ535","GAJ536","CAM440","CAM411","CAM434"],
+  "GAJ607":["CAM434","GAJ589","GAJ535","CAM440","GAJ536"],"GAJ536":["GAJ589","GAJ535"],"GAJ535":["GAJ589"],
+  "CAM434":["CAM440"],"GAJ470":["GAJ563","GAJ643","GAJ623","GAJ622","GAJ554","GAJ498"],"GAJ643":["GAJ623"],
+  "GAJ554":["GAJ498"],"GHA492":["SIHA004"],"GKC103":["IKC0053"],"GAA113":["GAA816","SAA076"],
+  "GAA816":["SAA076"],"GKC152":["GAF265"],"GHA319":["IHA0023","GHA138"],"GAA292":["IAA0075","GAA470"],
+  "GAA101":["IAA0074","GAA863"],"SIKC005":["XAA055"],"IKC0175":["XKC175"],"IAA0088":["NHA452","NHA453"],
+  "GAF134":["GAF476"],"IAA0054":["IAA0053"],"GHA235":["IHA0024","IHA0076","SIHA011"],"HMCT":["IAA0078"],
+  "GAF495":["GAF428","GKC537"],"GKC057":["IKC0115"],"GAJ336":["GAJ382"],"GAF485":["GAF425","GAF433"],
+  "GAF357":["GAF471","GHA198"],"GAA084":["GAA835"],"GHA308":["IHA0045"],
+  "GAF489":["GAF533","GAF548","CAM439","GAF536"],"GAF533":["CAM439","GAF548"],"GMK172":["GMK328"],
+  "GAF440":["GAF498"],"GHA199":["SIHA006","IHA0074"],"GAF491":["GAF434","GAF539","GAF430"],
+  "GAF494":["GAF436","GAJ439"],"GAF092":["SIAF006"],"GKC011":["GKC531"],"GAF089":["GAF274","GAF545"],
+  "GAA575":["GAA842","GAA748"],"GAA842":["GAA748"],"GAF025":["GAF458"],"GHA282":["GHA517","GKC294"],
+  "GAF493":["GAF484","GAJ070"],"GHA137":["SIHA008"],"GAF486":["GAF416","GAF475","GAF514"],"GKC142":["SIKC041"],
+  "GAA286":["GAA744"],"GAA594":["GAA614","GAA576"],"GAA315":["GAA374"],"GHA239":["GHA535"],"GAJ048":["GAJ208"],
+  "IKC0134":["IKC0130"],"IKC0136":["IKC0131"],"GAJ153":["GAJ585"],"GHA122":["GHA542"],
+  "GAA561":["GAA756","GAA738","GAA483","GAA579"],"GAA559":["GAA825","GAA832"],"GHA408":["IHA0022"],
+  "GAA412":["GAA821","GAA505","GAA655"],"GAA821":["GAA655"],"IAA0055":["IAF0049"],"GKC100":["GKC334"],
+  "GAJ500":["CAM321","GAJ530","GAJ537","GAJ538"],"GAJ538":["GAJ530"],"GAA573":["GAA613"],
+  "GAF452":["SIAF011","SIAF012"],"GMK025":["GMK281"],"GKC143":["IKC0127","IKC0225","GKC306"],
+  "GAF327":["GAF270","GAF474"],"GAF067":["IAF0017","SIAF005"],"GKC515":["IKC0241"],
+  "GAJ609":["GAA222","GAJ360","GAA181","GAJ304","GAJ366"],"GAA222":["GAJ366","GAJ360","GAA181","GAJ304"],
+  "GAA081":["GAA375"],"GAA231":["GAA424","GAA869"],"GAA424":["GAA869"],"GAJ119":["IAJ0018"],
+  "GHA102":["IKC0184"],"GAJ466":["GAJ415"],"GHA178":["IHA0002"],"GAF033":["GAF341"],"GAF066":["GAF244"],
+  "GAF155":["CAM151"],"GHA259":["GHA543"],"GAF079":["IAJ0022","GAF547"],"GKC084":["GKC596"],
+  "GAJ170":["IAJ0016"],"GHA021":["GHA540"],"GKC126":["GKC124","GKC547","GKC567","GKC120"],
+  "GAJ577":["GAJ598","GAJ555","GAJ633","GAJ571","GAJ559","GAJ547"],"GAJ559":["GAJ571"],"GAJ598":["GAJ555"],
+  "GAJ547":["GAJ559","GAJ633","GAJ571"],"GKC007":["IKC0209"],"GKC124":["GKC547","GKC567","GKC120"],
+  "GMK168":["GMK344"],"GAJ471":["GAJ573","GAJ565","GAJ626","GAJ507","GAJ570","GAJ564","GAJ494"],
+  "GAJ626":["GAJ494"],"GAJ570":["GAJ507"],"GAJ573":["GAJ564","GAJ507","GAJ570"],
+  "GAJ504":["GAJ567","GAJ579","GAJ592","GAJ617","GAJ542","CAM320","CAM432"],"GAJ592":["CAM320"],
+  "GAJ567":["GAJ542","CAM432"],"GKC122":["GKC298","IKC0135","IKC0139","IKC0140"],
+  "GKC298":["IKC0135","IKC0139","IKC0140"],"GHA329":["GHA546"],"GHA115":["GHA520"],"GKC074":["GKC244"],
+  "GAR006":["CAM430","CAM437"],"GKC095":["GKC565"],"GMK049":["GMK337"],"GAA678":["GAA361","SIAA015"],
+  "GKC139":["IKC0273"],"GAF132":["GAF541"],"GKC075":["GKC585","SIKC043","GAF497"],"GAF241":["GAF528"],
+  "GAJ013":["SIAJ015","IAJ0024","GAJ281"],"GAF256":["GAF220"],"GAF206":["GHA496"],"GKC315":["GKC486"],
+  "GKC159":["GKC240"],"GAA766":["GAA724","GAA507"],"GHA047":["GHA547"],"GAJ205":["GAR001"],
+  "GAJ493":["GAJ600","GAJ506"],"GAJ032":["GAJ271"],"IKC0098":["GKC598","IKC0094","IKC0052","IKC0142"],
+  "GAJ218":["GAJ289"],"GAA440":["GAA779"],"GHA032":["GHA548"],"GAF095":["GAF258"],"GHA191":["IHA0077"],
+  "GAJ552":["GAJ499","GAJ629","GAJ505","GAJ642","GAJ481","GAJ591","GAJ599","GAJ491"],"GAJ629":["GAJ491"],
+  "GAJ499":["GAJ599"],"GAJ557":["GAJ503","GAJ614","GAJ616","GAJ647","GAJ621","GAJ539","GAJ572","GAJ532"],
+  "GAJ572":["GAJ647"],"GAJ614":["GAJ532"],"GAJ503":["GAJ616"],"GAJ490":["GAJ553","GAJ543","GAJ648"],
+  "GAA817":["GAA864","GAA854"],"GMK245":["GMK336"],"GHA270":["GHA551"],"GKC056":["IKC0281"],
+  "GAF035":["SIAF007"],"GAJ180":["GKC028"],"GKC191":["SIKC286"],"GKC260":["GKC522"],"GKC135":["GHA550"],
+  "GAF217":["SIAF001"],"GAJ146":["GJR011","GAJ580","GAJ581","GAJ511","GJR009"],"GAJ511":["GJR009"],
+  "GAA804":["GAA494","GAA261","GAA121","GAA395","GAA641","GAA417","GAA852"],"GAA334":["GAA710"],
+  "GHA217":["CAM441"],"GMK087":["IKC0208"],"GKC019":["GMK216"],"GAJ254":["GAJ611"],"GAA267":["SIAA003"],
+  "GAA839":["GAA052"],"GHA263":["GHA552"],"GAJ103":["CAM307"],"GKC517":["GKC224"],"GKC451":["IKC0191"],
+  "GAA379":["GAA877"],"GAF328":["GAF366"],"GAA193":["GAA380"],"GHA451":["IHA0082"],"GAA095":["IAA0114"],
+  "GKC485":["IKC0306"]
+};
+
+// ═══ REVERSE INDEX ═══
+const CHILD_TO_PARENTS={};
+(function(){
+  for(const hub in SITE_RELATIONS){
+    for(const rawChild of SITE_RELATIONS[hub]){
+      const child=normalizeRelCode(rawChild);
+      if(!CHILD_TO_PARENTS[child])CHILD_TO_PARENTS[child]=[];
+      if(!CHILD_TO_PARENTS[child].includes(hub))CHILD_TO_PARENTS[child].push(hub);
+    }
+  }
+})();
+function normalizeRelCode(code){return uc((code||"").replace(/\([^)]*\)/g,"").replace(/[^A-Z0-9]/gi,"").trim());}
+function getSiteRelationNote(code){
+  const c=normalizeRelCode(code);
+  const parents=CHILD_TO_PARENTS[c]||[];
+  const children=(SITE_RELATIONS[c]||[]).map(normalizeRelCode).filter(x=>x);
+  const parts=[];
+  if(parents.length===1){const gp=CHILD_TO_PARENTS[parents[0]]||[];if(gp.length>0)parts.push(`Terminal under ${parents[0]} | Bigger hub: ${gp.join(", ")}`);else parts.push(`Terminal under hub: ${parents[0]}`);}
+  else if(parents.length>1)parts.push(`Possible parent hubs: ${parents.join(", ")}`);
+  if(children.length>0)parts.push(`Hub of: ${children.join(", ")}`);
+  return parts.join(" | ");
+}
+
+const POWER_ALARMS=["Commercial Power Failure","Mains Input Out of Range","AC Mains Power Failure","Incoming Mains Voltage Out of Range","Hybrid DG Abnormal","Rectifier AC Power Failure","Rectifier DC Voltage Low","Rectifier DC Low Voltage"];
+const TEMP_ALARMS_FIXED=["Cabinet Air Inlet Temperature Unacceptable","Board Temperature unacceptable","Ambient Temperature"];
+
+// ═══ CHANGED: Added "rot" to both category orders ═══
+const DAILY_CAT_ORDER=["dg","power","temperature","thirdparty","fiber","transmission","rot","access","blocked"];
+const OLD_CAT_ORDER=["power","access","thirdparty","dg","temperature","fiber","transmission","rot","special"];
+
+let state=loadState();
+let alarmMem=JSON.parse(localStorage.getItem(ALARM_MEM_KEY)||"{}");
+let flapMem=JSON.parse(localStorage.getItem(FLAP_MEM_KEY)||"{}");
+let editingId=null;
+let pendingActions=[];
+
+function loadState(){
+  try{return{sites:[],importedRawText:"",dirty:false,theme:"dark",...JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}")};}
+  catch{return{sites:[],importedRawText:"",dirty:false,theme:"dark"};}
+}
+function saveState(){
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+  localStorage.setItem(ALARM_MEM_KEY,JSON.stringify(alarmMem));
+  localStorage.setItem(FLAP_MEM_KEY,JSON.stringify(flapMem));
+  updateStats();
+}
+function notify(msg){const n=document.createElement("div");n.className="notif";n.textContent=msg;document.body.appendChild(n);setTimeout(()=>n.remove(),2500);}
+function pad(n){return String(n).padStart(2,"0");}
+function uc(s){return(s||"").toUpperCase();}
+function makeId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
+function escapeHtml(str){return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+
+// ═══ CHANGED: Added ROT to categoryLabel ═══
+function categoryLabel(cat){
+  return{
+    dg:"DG Issues",power:"Power Issues",temperature:"Temperature Issues",
+    thirdparty:"3rd Party Issues",fiber:"Fiber Issues",transmission:"Transmission Issues",
+    rot:"ROT Issues",
+    access:"Access Issues",blocked:"Blocked Sites",
+    special:"Temporary Dismantling/Under Relocation/Under Renovation/Under Dismantling/Under Vandalism"
+  }[cat]||cat;
+}
+
+function todayKey(){const d=new Date();return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
+function cleanFlapMemory(){const today=todayKey(),clean={};for(const k in flapMem)if(flapMem[k].date===today)clean[k]=flapMem[k];flapMem=clean;}
+function cleanAlarmMemory(){const cutoff=Date.now()-30*24*60*60*1000,clean={};for(const k in alarmMem)if(alarmMem[k].time&&alarmMem[k].time>cutoff)clean[k]=alarmMem[k];alarmMem=clean;}
+function toggleTheme(){state.theme=state.theme==="dark"?"light":"dark";document.body.setAttribute("data-theme",state.theme);saveState();}
+function setDefaultDateTime(){const n=new Date();document.getElementById("alarmDateTime").value=new Date(n.getTime()-n.getTimezoneOffset()*60000).toISOString().slice(0,16);}
+function localInputToDisplay(v){
+  if(!v)return nowDisplayDateTime();const[datePart,timePart]=v.split("T");if(!datePart||!timePart)return nowDisplayDateTime();
+  const[yr,mo,dy]=datePart.split("-").map(Number);const[hr,mi]=timePart.split(":").map(Number);
+  if(!yr||!mo||!dy||isNaN(hr)||isNaN(mi))return nowDisplayDateTime();
+  return`${yr}-${pad(mo)}-${pad(dy)} ${pad(hr)}:${pad(mi)}`;
+}
+function displayToLocalInput(dt){const m=dt&&dt.match(/(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})/);return m?`${m[1]}T${m[2]}`:""; }
+function nowDisplayDateTime(){const d=new Date();return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;}
+function extractDateTimeFromLine(line){const m=line.match(/(\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2})/);return m?m[1].replace("T"," "):""; }
+function extractTimestampFromLine(line){const dt=extractDateTimeFromLine(line);if(!dt)return 0;const t=new Date(dt.replace(" ","T")).getTime();return isNaN(t)?0:t;}
+function openTab(id,btn){
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.getElementById(id).classList.add("active");btn.classList.add("active");
+  if(id==="manage")renderSites();if(id==="summary")generateOutput();if(id==="alarms")setDefaultDateTime();
+}
+document.addEventListener("DOMContentLoaded",()=>{
+  document.body.setAttribute("data-theme",state.theme||"dark");
+  cleanFlapMemory();cleanAlarmMemory();setDefaultDateTime();updateStats();
+});
+
+// ═══ COUNTING ═══
+function isRingDownCode(code){return/^RING DOWN BETWEEN/i.test((code||"").trim());}
+
+// ═══ CHANGED: isOHOnly — true if terminal string is purely OH with no named codes ═══
+function isOHOnly(terminals){
+  if(!terminals)return false;
+  // remove the count prefix e.g. "7T"
+  const codesStr=terminals.replace(/^\d+T_?/i,"");
+  if(!codesStr||codesStr.trim()==="")return false;
+  // split by comma and underscore
+  const parts=codesStr.split(/[,_]/).map(s=>s.trim().toUpperCase()).filter(s=>s);
+  // if every part is OH (or empty), then it's OH-only
+  return parts.every(p=>p==="OH"||p==="");
+}
+
+function countSectors(line){
+  const code=extractSiteCode(line);
+  if(isRingDownCode(code))return 0;
+  const m=line.match(/\*?([A-Z]{2,4}\d{2,4})([A-Z](?:\/[A-Z])*)/i);
+  return(m&&m[2])?m[2].split("/").length:1;
+}
+function countTerminals(line){
+  const parens=[...line.matchAll(/\(([^)]*)\)/g)].map(m=>m[1]);
+  for(const c of parens){const m=c.match(/(\d+)T/i);if(m)return parseInt(m[1],10);}return 0;
+}
+function extractTerminalCodes(line){
+  const parens=[...line.matchAll(/\(([^)]*)\)/g)].map(m=>m[1]);
+  for(const content of parens){
+    const m=content.match(/\d+T[_]?(.*)/i);
+    if(m&&m[1]){
+      return m[1].split(/[,_]/).map(s=>uc(s.trim())).filter(s=>
+        s&&!/^\d/.test(s)&&!["OH","4G","3G","2G","VIP"].includes(s)&&
+        !/^(OH|VIP)_/i.test(s)&&!/_?(OH|VIP)$/i.test(s)
+      );
+    }
+  }return[];
+}
+
+// ═══ CHANGED: OH-only terminals count as 0 (hub only = 1 sector) ═══
+function countContribution(site,sameCategoryItems){
+  const code=extractSiteCode(site.originalLine);
+  const terminals=countTerminals(site.originalLine);
+  const termCodes=extractTerminalCodes(site.originalLine);
+
+  // check if terminals string is OH-only
+  const parens=[...site.originalLine.matchAll(/\(([^)]*)\)/g)].map(m=>m[1]);
+  let rawTermStr="";
+  for(const c of parens){if(/^\d+T/i.test(c)){rawTermStr=c;break;}}
+  const ohOnly=isOHOnly(rawTermStr);
+
+  let skip=0;
+  for(const tc of termCodes){
+    if(state.sites.some(s=>s.id!==site.id&&uc(s.code.trim())===uc(tc.trim())))skip++;
+  }
+
+  if(isRingDownCode(code))return Math.max(0,terminals-skip);
+  const sectors=countSectors(site.originalLine);
+  if(site.category==="blocked")return sectors;
+
+  // ═══ FIX: if OH-only, terminals = 0, count only sectors (hub itself) ═══
+  if(ohOnly)return sectors;
+
+  return sectors+Math.max(0,terminals-skip);
+}
+
+function groupCount(items){return items.reduce((sum,s)=>sum+countContribution(s,items),0);}
+function sortItems(items){
+  return items.slice().sort((a,b)=>{
+    const at=extractTimestampFromLine(a.originalLine),bt=extractTimestampFromLine(b.originalLine);
+    if(at!==bt)return bt-at;
+    const ap=a.pinTime||0,bp=b.pinTime||0;
+    if(ap!==bp)return bp-ap;return(a.importOrder||0)-(b.importOrder||0);
+  });
+}
+
+// ═══ TAG / LINE PARSING ═══
+function extractSiteCode(line){
+  let t=line.trim();if(t.startsWith("*"))t=t.slice(1);
+  const rdm=t.match(/^(Ring Down between\s+\S+\s+and\s+\S+)/i);
+  if(rdm)return uc(rdm[1]);
+  const m=t.match(/^([^\s(*]+)/);return m?uc(m[1].replace(/\*+$/,"")):"";
+}
+function parseTag(tagPart){
+  const code=extractSiteCode(tagPart);
+  const balanced=[...tagPart.matchAll(/\(([^)]*)\)/g)].map(m=>m[1]);
+  const unclosed=tagPart.match(/\(([^)]+)$/);
+  const parts=unclosed?[...balanced,unclosed[1]]:balanced;
+  let power="",terminals="",order="power-first";
+  if(parts.length===1){if(/^\d+T/i.test(parts[0])){terminals=parts[0];order="term-first";}else power=parts[0];}
+  else if(parts.length>=2){
+    if(/^\d+T/i.test(parts[0])&&!/^\d+T/i.test(parts[1])){terminals=parts[0];power=parts[1];order="term-first";}
+    else{power=parts[0];terminals=parts[1];}
+  }
+  return{code,power,terminals,order};
+}
+function buildTag({code,power,terminals,order}){
+  const uc_code=uc(code);
+  if(isRingDownCode(uc_code)){return terminals?`${uc_code}(${terminals})`:uc_code;}
+  let t=uc_code;
+  if(order==="term-first"&&terminals&&power)t+=`(${terminals})(${power})`;
+  else if(order==="term-first"&&terminals)t+=`(${terminals})`;
+  else if(power&&terminals)t+=`(${power})(${terminals})`;
+  else if(power)t+=`(${power})`;
+  else if(terminals)t+=`(${terminals})`;
+  return t;
+}
+function extractLineMeta(line,category){
+  const dt=extractDateTimeFromLine(line);const idx=dt?line.indexOf(dt):-1;
+  const tagPart=(idx>-1?line.slice(0,idx):line).trim();
+  const tagMeta=parseTag(tagPart);
+  let tt="",alarm="",comment="";
+  let after=idx>-1?line.slice(idx+dt.length).trim():"";
+  if(after.startsWith("-"))after=after.slice(1).trim();
+  let rest=after;
+  let m=after.match(/^(\*\*|\*[^*]+\*|TT-[A-Z0-9-]+(?:\s*-\s*Manual TT)?)\s*-\s*(.*)$/i);
+  if(!m)m=after.match(/^(\*\*|\*[^*]+\*|TT-[A-Z0-9-]+(?:\s*-\s*Manual TT)?)\s+(.*)$/i);
+  if(m){tt=m[1];rest=m[2];}
+  if(category==="blocked"){const parts=rest.split(" - ");if(parts.length>=2){alarm=parts[0].trim();comment=parts.slice(1).join(" - ").trim();}else comment=rest.trim();}
+  else comment=rest.trim();
+  return{code:tagMeta.code,power:tagMeta.power,terminals:tagMeta.terminals,order:tagMeta.order,dateTime:dt,tt,alarm,comment};
+}
+function buildLine(meta,category){
+  const code=uc(meta.code||"");
+  if(isRingDownCode(code)){const tag=buildTag(meta);return`*${tag}* ${meta.dateTime||""}`.trim();}
+  const tag=`*${buildTag(meta)}*`;let line=tag;
+  if(meta.dateTime)line+=` ${meta.dateTime}`;
+  if(meta.tt)line+=` - ${meta.tt}`;else if(category!=="special")line+=` - **`;
+  if(category==="blocked")line+=` - ${meta.alarm||""} - ${meta.comment||""}`;
+  else line+=` - ${meta.comment||""}`;
+  return line.replace(/\s+-\s+$/,"").trim();
+}
+
+// ═══ HEADER DETECTION ═══
+// ═══ CHANGED: Added ROT Issues header detection ═══
+function isHeaderOrSeparator(line){
+  const t=line.trim();if(!t)return true;if(/^[-]{3,}$/.test(t))return true;
+  if(/^\*?Daily Sites Down\/Blocked/i.test(t))return true;if(/^\*?Old Pending Sites Down/i.test(t))return true;
+  if(/^(\*?)Power\s*[Ii]ssues?:\s*\d/i.test(t))return true;if(/^(\*?)Access\s*[Ii]ssues?:\s*\d/i.test(t))return true;
+  if(/^(\*?)DG\s*[Ii]ssues?:\s*\d/i.test(t))return true;if(/^(\*?)3rd\s*Party\s*[Ii]ssues?:\s*\d/i.test(t))return true;
+  if(/^(\*?)Blocked\s*Sites?\s*:?\s*\d/i.test(t))return true;if(/^(\*?)Temperature\s*[Ii]ssues?:\s*\d/i.test(t))return true;
+  if(/^(\*?)Fiber\s*[Ii]ssues?:\s*\d/i.test(t))return true;if(/^(\*?)Transmission\s*[Ii]ssues?:\s*\d/i.test(t))return true;
+  if(/^(\*?)ROT\s*[Ii]ssues?:\s*\d/i.test(t))return true;
+  if(/^\*?Temporary Dismantling\/Under Relocation\/Under Renovation\/Under Dismantling\/Under Vandalism:\s*\d+\*?$/i.test(t))return true;
+  return false;
+}
+
+// ═══ IMPORT ═══
+// ═══ CHANGED: Added ROT category detection in import ═══
+function importSummary(){
+  const text=document.getElementById("importText").value;if(!text.trim()){notify("Paste summary first.");return;}
+  const lines=text.split("\n");const imported=[];let section="daily",category="power";const orderCounters={};
+  for(const raw of lines){
+    const line=raw.trimEnd();if(!line.trim())continue;
+    if(/Daily Sites Down\/Blocked/i.test(line)){section="daily";continue;}
+    if(/Old Pending Sites Down/i.test(line)){section="old";continue;}
+    if(/^(\*?)DG\s*[Ii]ssues?:/i.test(line.trim())){category="dg";continue;}
+    if(/^(\*?)Power\s*[Ii]ssues?:/i.test(line.trim())){category="power";continue;}
+    if(/^(\*?)Temperature\s*[Ii]ssues?:/i.test(line.trim())){category="temperature";continue;}
+    if(/^(\*?)3rd\s*Party\s*[Ii]ssues?:/i.test(line.trim())){category="thirdparty";continue;}
+    if(/^(\*?)Fiber\s*[Ii]ssues?:/i.test(line.trim())){category="fiber";continue;}
+    if(/^(\*?)Transmission\s*[Ii]ssues?:/i.test(line.trim())){category="transmission";continue;}
+    if(/^(\*?)ROT\s*[Ii]ssues?:/i.test(line.trim())){category="rot";continue;}
+    if(/^(\*?)Access\s*[Ii]ssues?:/i.test(line.trim())){category="access";continue;}
+    if(/^(\*?)Blocked\s*Sites?\s*:?\s*\d/i.test(line.trim())){category="blocked";continue;}
+    if(/^\*?Temporary Dismantling\/Under Relocation\/Under Renovation\/Under Dismantling\/Under Vandalism:\s*\d+\*?$/i.test(line.trim())){category="special";continue;}
+    if(isHeaderOrSeparator(line))continue;
+    const code=extractSiteCode(line);if(!code)continue;
+    const key=section+"_"+category;if(!orderCounters[key])orderCounters[key]=0;
+    imported.push({id:makeId(),code,originalLine:line,section,category,importOrder:orderCounters[key]++,pinTime:0});
+  }
+  state.sites=imported;state.importedRawText=text;state.dirty=false;saveState();
+  document.getElementById("importResult").innerHTML=`<div class="result-box"><div class="result-added">✅ Imported ${imported.length} lines.</div></div>`;
+  renderSites();notify("Summary imported.");
+}
+
+function isPowerAlarm(text){const t=(text||"").toLowerCase();return POWER_ALARMS.some(a=>t.includes(a.toLowerCase()));}
+function isTempAlarm(text){if(/high temperature over\s*\d+\s*c/i.test(text||""))return true;const t=(text||"").toLowerCase();return TEMP_ALARMS_FIXED.some(a=>t.includes(a.toLowerCase()));}
+function detectCategoryFromAlarm(alarmText,powerType,isDirect){
+  const p=uc(powerType);if(p.includes("DG"))return isDirect?"dg":isTempAlarm(alarmText)?"temperature":"dg";
+  if(p.includes("SHARED"))return"thirdparty";if(isTempAlarm(alarmText))return"temperature";return"power";
+}
+function detectCategoryFromMemory(code,powerType,isDirect){
+  const mem=alarmMem[uc(code)];if(mem?.alarmText)return detectCategoryFromAlarm(mem.alarmText,powerType,isDirect);
+  const p=uc(powerType);if(p.includes("DG"))return"dg";if(p.includes("SHARED"))return"thirdparty";return"power";
+}
+function parseAlarmInputLine(line){
+  let c=line.replace(/\*/g,"").trim();
+  const rdm=c.match(/^(Ring Down between\s+\S+\s+and\s+\S+)\s*(\([^)]*\))?/i);
+  if(rdm){const code=uc(rdm[1]);const termStr=rdm[2]?(rdm[2].replace(/[()]/g,"")):"";return{code,power:"",terminals:termStr,order:"power-first",alarm:"",textAfterTag:"",raw:c};}
+  const firstCode=c.match(/^([A-Za-z]{2,4}\d{2,4}[A-Za-z]?(?:\/[A-Za-z](?:\/[A-Za-z])?)?)/i);
+  if(firstCode)c=uc(firstCode[1])+c.slice(firstCode[1].length);
+  const code=extractSiteCode(c);if(!code)return null;
+  const afterCode=c.slice(code.length);const parts=[...afterCode.matchAll(/\(([^)]*)\)/g)].map(m=>m[1]);
+  let power="",terminals="",order="power-first";
+  if(parts.length===1){if(/^\d+T/i.test(parts[0])){terminals=parts[0];order="term-first";}else power=parts[0];}
+  else if(parts.length>=2){if(/^\d+T/i.test(parts[0])&&!/^\d+T/i.test(parts[1])){terminals=parts[0];power=parts[1];order="term-first";}else{power=parts[0];terminals=parts[1];}}
+  let alarm="";if(/\/\/Cells Blocking/i.test(c)){const after=c.replace(code,"").replace(/\([^)]+\)/g,"").trim();alarm=after.replace(/\/\/Cells Blocking/i,"").trim();}
+  const textAfterTag=c.replace(code,"").replace(/\([^)]+\)/g,"").replace(/\/\/Cells Blocking/i,"").trim();
+  return{code,power,terminals,order,alarm,textAfterTag,raw:c};
+}
+function isClearedLine(line){return/cleared/i.test((line||"").replace(/\*/g,"").trim());}
+function extractClearedCode(line){return extractSiteCode(line.replace(/\*/g,""));}
+function deduplicateAlarmLines(lines){
+  const seen={},result=[];
+  for(const line of lines){
+    const t=line.trim();if(!t){result.push(line);continue;}
+    const parsed=parseAlarmInputLine(t);if(!parsed){result.push(line);continue;}
+    const code=uc(parsed.code);
+    const namedCodes=extractTerminalCodes(`*${parsed.code}(${parsed.terminals})*`);
+    const key=code+(/\/\/Cells Blocking/i.test(t)?"_B":"_D");
+    if(!seen[key]){seen[key]={idx:result.length,namedCount:namedCodes.length};result.push(line);}
+    else if(namedCodes.length>seen[key].namedCount){result[seen[key].idx]=line;seen[key].namedCount=namedCodes.length;}
+  }return result.filter(l=>l!==undefined);
+}
+function cleanBlockedTerminalsSmart(terminals,power,allBlockedCodes){
+  if(!terminals)return"";
+  if(/\/VIP/i.test(power||""))return(terminals.match(/^(\d+T)/i)||[""])[0];
+  if(/_VIP\b/i.test(terminals))return terminals.replace(/_VIP\b/i,"/VIP");
+  const countStr=(terminals.match(/^(\d+T)/i)||[""])[0];
+  const codesStr=terminals.replace(/^\d+T_?/i,"");
+  const termCodes=codesStr.split(/[,_]/).map(s=>uc(s.trim())).filter(s=>s&&!/^\d/.test(s)&&!["OH","4G","3G","2G","VIP"].includes(s));
+  const keepCodes=termCodes.filter(tc=>!allBlockedCodes.includes(uc(tc)));
+  if(!keepCodes.length)return countStr;return countStr+keepCodes.join(",");
+}
+function isTerminalInsideBlockedHub(code,pendingBlockedMap){
+  const inState=state.sites.some(s=>{if(s.category!=="blocked")return false;return extractTerminalCodes(s.originalLine).includes(uc(code));});
+  if(inState)return true;
+  if(pendingBlockedMap){for(const[h,tc] of Object.entries(pendingBlockedMap)){if(uc(h)===uc(code))continue;if(tc.includes(uc(code)))return true;}}
+  return false;
+}
+function markRestore(code){const k=uc(code),t=todayKey();if(!flapMem[k]||flapMem[k].date!==t)flapMem[k]={date:t,count:1};else flapMem[k].count++;}
+function isFlapNow(code){const k=uc(code),t=todayKey();return flapMem[k]&&flapMem[k].date===t&&flapMem[k].count>=2;}
+function powerFamily(power){const p=uc(power);if(p.includes("DG"))return"DG";if(p.includes("MEW"))return"MEW";if(p.includes("SHARED"))return"SHARED";return"";}
+function addFlapToPower(power,shouldFlap){if(!shouldFlap)return power;if(!power)return"Flap";if(/\/Flap/i.test(power))return power;return power+"/Flap";}
+function buildNewDownLine(parsed,dateTime,finalCategory,shouldFlap){
+  return buildLine({code:parsed.code,power:addFlapToPower(parsed.power||"",shouldFlap||finalCategory==="temperature"),terminals:parsed.terminals||"",order:parsed.order||"power-first",dateTime,tt:"**",comment:"Team on the way to the site."},finalCategory);
+}
+function findKnownSiteInLine(line){
+  const matches=line.match(/[A-Z]{2,4}\d{2,4}[A-Z]?/gi)||[];
+  for(const match of matches){const code=uc(match.replace(/[^A-Z0-9]/g,""));if(findPrimaryEntryIndex(code)>=0)return code;}return null;
+}
+function extractCommentFromLine(line,code){
+  let c=line.replace(new RegExp(code,"i"),"").trim();
+  c=c.replace(/\([^)]*\)/g,"").replace(/\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}/,"").trim();
+  c=c.replace(/TT-[A-Z0-9-]+(?:\s*-\s*Manual TT)?/i,"").replace(/-?\s*\*\*/g,"").trim();
+  c=c.replace(/\/\/Cells Blocking/i,"").replace(/^[-\s]+/,"").trim();
+  return c||"Team on the way to the site.";
+}
+
+// ═══ PREPARE PENDING ═══
+function preparePendingActions(){
+  const text=document.getElementById("alarmText").value;if(!text.trim()){notify("Paste alarms first.");return;}
+  const defaultCat=document.getElementById("alarmCategory").value;
+  const defaultDT=localInputToDisplay(document.getElementById("alarmDateTime").value);
+  const lines=deduplicateAlarmLines(text.split("\n"));
+  pendingActions=[];let i=0;
+  while(i<lines.length){
+    const cur=lines[i].trim();if(!cur){i++;continue;}
+    if(/^Ring Down between/i.test(cur.replace(/\*/g,"").trim())){
+      const parsed=parseAlarmInputLine(cur);
+      if(parsed)pendingActions.push({id:makeId(),type:"ringDown",parsed,category:defaultCat==="auto"?"power":defaultCat,dateTime:defaultDT,raw:cur});
+      i++;continue;
+    }
+    if(isClearedLine(cur)&&!/Site\s*(direct\s*)?Down/i.test(cur)){
+      const code=extractClearedCode(cur);if(code)pendingActions.push({id:makeId(),type:"unblock",code:uc(code),raw:cur});i++;continue;
+    }
+    if(/only\s*hub\s*(is\s*)?(restored|cleared)/i.test(cur)){
+      const parsed=parseAlarmInputLine(cur);if(parsed?.code)pendingActions.push({id:makeId(),type:"hubOnlyRestore",code:parsed.code,parsed,raw:cur});i++;continue;
+    }
+    if(/Hub\s*and\s*Terminals?\s*(are\s*)?Restored/i.test(cur)){
+      const parsed=parseAlarmInputLine(cur);if(parsed?.code)pendingActions.push({id:makeId(),type:"hubAndTerminalsRestore",code:parsed.code,parsed,raw:cur});i++;continue;
+    }
+    if(/restored/i.test(cur)&&!/only\s*hub/i.test(cur)&&!/Hub\s*and\s*Terminals?/i.test(cur)){
+      const code=extractSiteCode(cur.replace(/\*/g,""));if(code)pendingActions.push({id:makeId(),type:"restore",code});i++;continue;
+    }
+    if(/\/\/Cells Blocking/i.test(cur)){
+      const parsed=parseAlarmInputLine(cur);if(parsed)pendingActions.push({id:makeId(),type:"blocked",parsed,category:defaultCat==="auto"?"auto":defaultCat,dateTime:defaultDT,raw:cur});i++;continue;
+    }
+    const isDown=/Site\s*(direct\s*)?Down/i.test(cur)||/Hub\s*and\s*Terminals?\s*(are\s*)?(direct\s*)?Down/i.test(cur)||/Only\s*hub\s*is?\s*(direct\s*)?down/i.test(cur);
+    if(isDown){
+      const parsed=parseAlarmInputLine(cur);
+      if(parsed){
+        const alreadyExists=state.sites.some(s=>uc(s.code)===uc(parsed.code)&&s.section==="daily");
+        pendingActions.push({id:makeId(),type:"down",parsed,category:defaultCat==="auto"?"auto":defaultCat,dateTime:defaultDT,isDirect:/direct/i.test(cur),isHubDown:/Hub\s*and\s*Terminals?/i.test(cur)||/Only\s*hub/i.test(cur),alreadyExists,raw:cur});
+      }
+      i++;continue;
+    }
+    const parsedMem=parseAlarmInputLine(cur);
+    if(parsedMem?.code&&parsedMem.textAfterTag&&(isPowerAlarm(parsedMem.textAfterTag)||isTempAlarm(parsedMem.textAfterTag))){
+      pendingActions.push({id:makeId(),type:"rememberAlarm",code:parsedMem.code,alarmText:parsedMem.textAfterTag,raw:cur});i++;continue;
+    }
+    const existingCode=findKnownSiteInLine(cur);
+    if(existingCode){const comment=extractCommentFromLine(cur,existingCode);if(comment.length>3){pendingActions.push({id:makeId(),type:"updateComment",code:existingCode,comment,raw:cur});i++;continue;}}
+    pendingActions.push({id:makeId(),type:"ignored",raw:cur});i++;
+  }
+  const blockedCodes=new Set(),clearedCodes=new Set();
+  pendingActions.forEach(a=>{if(a.type==="blocked")blockedCodes.add(uc(a.parsed.code));if(a.type==="unblock")clearedCodes.add(uc(a.code));});
+  const cancelledCodes=new Set();clearedCodes.forEach(code=>{if(blockedCodes.has(code))cancelledCodes.add(code);});
+  if(cancelledCodes.size>0){
+    const newActions=[];const cancelledAlready=new Set();
+    pendingActions.forEach(a=>{
+      const ac=a.type==="blocked"?uc(a.parsed.code):a.type==="unblock"?uc(a.code):null;
+      if(ac&&cancelledCodes.has(ac)){
+        if(!cancelledAlready.has(ac)){
+          cancelledAlready.add(ac);
+          const existsInSummary=state.sites.some(s=>uc(s.code)===ac&&s.category==="blocked");
+          if(existsInSummary)newActions.push({id:makeId(),type:"unblock",code:ac,raw:`${ac} — cleared`});
+          else newActions.push({id:makeId(),type:"cancelled",code:ac,raw:`${ac} — blocked+cleared cancelled`});
+        }
+      }else newActions.push(a);
+    });pendingActions=newActions;
+  }
+  renderPendingActions();
+}
+
+// ═══ RENDER PENDING ═══
+// ═══ CHANGED: Added ROT option in category select ═══
+function renderPendingActions(){
+  const box=document.getElementById("alarmResult");
+  if(!pendingActions.length){box.innerHTML=`<div class="result-box"><div class="result-ignored">No valid actions detected.</div></div>`;return;}
+  let html=`<div class="result-box">`;
+  pendingActions.forEach(a=>{
+    if(a.type==="down"||a.type==="blocked"||a.type==="ringDown"){
+      const code=a.parsed.code;
+      const relNote=!isRingDownCode(code)?getSiteRelationNote(code):"";
+      const alreadyNote=a.alreadyExists?`<div style="color:var(--warning);font-size:12px;margin-top:4px;">⚠️ Already in summary — will update time only, comment preserved</div>`:"";
+      html+=`<div class="pending-item">
+        <div class="pending-head"><div class="pending-code">${escapeHtml(code)} — ${a.type.toUpperCase()}</div></div>
+        ${relNote?`<div class="relation-note">🔗 ${escapeHtml(relNote)}</div>`:""}
+        ${alreadyNote}
+        <div class="pending-grid">
+          <div>
+            <label style="display:block;margin-bottom:4px;color:var(--muted);font-size:12px;font-weight:700;">Category</label>
+            <select id="pending-cat-${a.id}">
+              <option value="auto" ${a.category==="auto"?"selected":""}>🔍 Auto-detect</option>
+              <option value="dg" ${a.category==="dg"?"selected":""}>DG Issues</option>
+              <option value="power" ${a.category==="power"?"selected":""}>Power Issues</option>
+              <option value="temperature" ${a.category==="temperature"?"selected":""}>Temperature Issues</option>
+              <option value="thirdparty" ${a.category==="thirdparty"?"selected":""}>3rd Party Issues</option>
+              <option value="fiber" ${a.category==="fiber"?"selected":""}>Fiber Issues</option>
+              <option value="transmission" ${a.category==="transmission"?"selected":""}>Transmission Issues</option>
+              <option value="rot" ${a.category==="rot"?"selected":""}>ROT Issues</option>
+              <option value="access" ${a.category==="access"?"selected":""}>Access Issues</option>
+              <option value="blocked" ${a.category==="blocked"?"selected":""}>Blocked Sites</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;margin-bottom:4px;color:var(--muted);font-size:12px;font-weight:700;">Date/Time</label>
+            <input type="datetime-local" id="pending-dt-${a.id}" value="${displayToLocalInput(a.dateTime)}"/>
+          </div>
+        </div>
+        <div class="pending-meta">${escapeHtml(a.raw)}</div>
+      </div>`;
+    }else{
+      let cls="result-ignored",label="";
+      if(a.type==="rememberAlarm"){cls="result-alarm";label=`${a.code} — alarm remembered: ${a.alarmText}`;}
+      else if(a.type==="restore"){cls="result-removed";label=`${a.code} — restore`;}
+      else if(a.type==="unblock"){cls="result-removed";label=`${a.code} — cleared/unblocked`;}
+      else if(a.type==="updateComment"){cls="result-updated";label=`${a.code} — update comment: ${a.comment}`;}
+      else if(a.type==="hubOnlyRestore"){cls="result-moved";label=`${a.code} — hub only restore`;}
+      else if(a.type==="hubAndTerminalsRestore"){cls="result-removed";label=`${a.code} — hub and terminals restore`;}
+      else if(a.type==="cancelled"){cls="result-cancelled";label=`${a.code} — blocked+cleared cancel out`;}
+      else label=`${a.raw||"?"} — ignored`;
+      html+=`<div class="${cls}" style="margin-bottom:8px;">${escapeHtml(label)}</div>`;
+    }
+  });
+  html+=`<div style="margin-top:12px;"><button class="btn btn-primary" onclick="applyPendingActions()">✅ Apply Pending</button><button class="btn btn-secondary" onclick="clearPendingActions()">🗑️ Clear Pending</button></div></div>`;
+  box.innerHTML=html;
+}
+function clearPendingActions(){pendingActions=[];document.getElementById("alarmResult").innerHTML="";}
+
+function applyPendingActions(){
+  if(!pendingActions.length)return;
+  const results=[];
+  const blockedActions=[],otherActions=[];
+  pendingActions.forEach(a=>{
+    if(a.type==="down"||a.type==="blocked"||a.type==="ringDown"){
+      const catEl=document.getElementById(`pending-cat-${a.id}`);const dtEl=document.getElementById(`pending-dt-${a.id}`);
+      if(catEl)a.category=catEl.value;if(dtEl)a.dateTime=localInputToDisplay(dtEl.value||displayToLocalInput(a.dateTime));
+    }
+    if(a.type==="blocked")blockedActions.push(a);else otherActions.push(a);
+  });
+  const pendingBlockedMap={};
+  blockedActions.forEach(a=>{pendingBlockedMap[uc(a.parsed.code)]=extractTerminalCodes(`*${a.parsed.code}(${a.parsed.terminals||""})*`);});
+  otherActions.forEach(a=>{
+    switch(a.type){
+      case"rememberAlarm":alarmMem[uc(a.code)]={alarmText:a.alarmText,time:Date.now()};results.push({type:"result-alarm",text:`${a.code} alarm remembered`});break;
+      case"restore":applyRestoreAction(a.code,results);break;
+      case"unblock":applyUnblockAction(a.code,results);break;
+      case"updateComment":applyUpdateCommentAction(a.code,a.comment,results);break;
+      case"hubOnlyRestore":applyHubOnlyRestoreAction(a.code,a.parsed,results);break;
+      case"hubAndTerminalsRestore":applyHubAndTerminalsRestoreAction(a.code,a.parsed,results);break;
+      case"down":applyDownAction(a,results,pendingBlockedMap);break;
+      case"ringDown":applyRingDownAction(a,results);break;
+      case"cancelled":results.push({type:"result-cancelled",text:`${a.code} blocked+cleared cancelled`});break;
+      default:results.push({type:"result-ignored",text:`${a.raw||"?"} ignored`});
+    }
+  });
+  if(blockedActions.length)applyAllBlockedActions(blockedActions,results);
+  state.dirty=true;saveState();renderSites();
+  let html=`<div class="result-box">`;results.forEach(r=>html+=`<div class="${r.type}">${escapeHtml(r.text)}</div>`);
+  html+=`</div>`;document.getElementById("alarmResult").innerHTML=html;
+  pendingActions=[];notify("Actions applied.");
+}
+function applyRingDownAction(action,results){
+  const code=uc(action.parsed.code);
+  const category=action.category==="auto"?"power":action.category;
+  const dateTime=action.dateTime||nowDisplayDateTime();
+  const terminals=action.parsed.terminals||"";
+  const newLine=`*${code}${terminals?"("+terminals+")":""}* ${dateTime}`.trim();
+  const existIdx=state.sites.findIndex(s=>isRingDownCode(s.code)&&uc(s.code)===code&&s.category===category&&s.section==="daily");
+  if(existIdx>=0){state.sites[existIdx].originalLine=newLine;state.sites[existIdx].pinTime=Date.now();results.push({type:"result-updated",text:`Ring Down updated in ${categoryLabel(category)}`});}
+  else{state.sites.push({id:makeId(),code,originalLine:newLine,section:"daily",category,importOrder:999999,pinTime:Date.now()});results.push({type:"result-added",text:`Ring Down added to ${categoryLabel(category)}`});}
+}
+function applyAllBlockedActions(blockedActions,results){
+  const newCodes=blockedActions.map(a=>uc(a.parsed.code));
+  const existCodes=state.sites.filter(s=>s.category==="blocked").map(s=>uc(s.code));
+  const allCodes=[...new Set([...newCodes,...existCodes])];
+  blockedActions.forEach(action=>{
+    const parsed=action.parsed;const shouldFlap=isFlapNow(parsed.code);
+    const ct=cleanBlockedTerminalsSmart(parsed.terminals||"",parsed.power||"",allCodes.filter(c=>c!==uc(parsed.code)));
+    const newLine=buildLine({code:parsed.code,power:addFlapToPower(parsed.power||"",shouldFlap),terminals:ct,order:parsed.order||"power-first",dateTime:action.dateTime,tt:"**",alarm:parsed.alarm||"",comment:"Team on the way to the site."},"blocked");
+    const sameIdx=findEntryIndex(parsed.code,"blocked","daily");
+    if(sameIdx>=0){state.sites[sameIdx].originalLine=newLine;state.sites[sameIdx].pinTime=Date.now();results.push({type:"result-updated",text:`${parsed.code} updated in Blocked Sites`});}
+    else{state.sites.push({id:makeId(),code:parsed.code,originalLine:newLine,section:"daily",category:"blocked",importOrder:999999,pinTime:Date.now()});results.push({type:"result-added",text:`${parsed.code} added to Blocked Sites`});}
+  });
+}
+function findEntryIndex(code,category,section="daily"){return state.sites.findIndex(s=>uc(s.code)===uc(code)&&s.category===category&&s.section===section);}
+function findPrimaryEntryIndex(code){
+  const matches=state.sites.filter(s=>uc(s.code)===uc(code));if(!matches.length)return -1;
+  const preferred=matches.filter(s=>s.section==="daily"&&s.category!=="blocked").sort((a,b)=>extractTimestampFromLine(b.originalLine)-extractTimestampFromLine(a.originalLine));
+  if(preferred.length)return state.sites.findIndex(s=>s.id===preferred[0].id);
+  const blocked=matches.filter(s=>s.section==="daily"&&s.category==="blocked").sort((a,b)=>extractTimestampFromLine(b.originalLine)-extractTimestampFromLine(a.originalLine));
+  if(blocked.length)return state.sites.findIndex(s=>s.id===blocked[0].id);
+  const old=matches.sort((a,b)=>extractTimestampFromLine(b.originalLine)-extractTimestampFromLine(a.originalLine));
+  return old.length?state.sites.findIndex(s=>s.id===old[0].id):-1;
+}
+function applyRestoreAction(code,results){
+  const all=state.sites.filter(s=>uc(s.code)===uc(code));
+  if(!all.length){results.push({type:"result-ignored",text:`${code} not found`});return;}
+  markRestore(code);state.sites=state.sites.filter(s=>uc(s.code)!==uc(code));
+  results.push({type:"result-removed",text:`${code} restored and removed`});
+}
+function applyUnblockAction(code,results){
+  const before=state.sites.length;state.sites=state.sites.filter(s=>!(uc(s.code)===uc(code)&&s.category==="blocked"));
+  if(state.sites.length===before)results.push({type:"result-ignored",text:`${code} not in blocked`});
+  else results.push({type:"result-removed",text:`${code} cleared/unblocked`});
+}
+function applyUpdateCommentAction(code,comment,results){
+  const idx=findPrimaryEntryIndex(code);
+  if(idx<0){results.push({type:"result-ignored",text:`${code} not found`});return;}
+  const site=state.sites[idx];
+  const meta=extractLineMeta(site.originalLine,site.category);
+  meta.comment=comment;site.originalLine=buildLine(meta,site.category);
+  if(/ACCESS\s*ISSUE/i.test(comment)){site.category="access";site.section="daily";results.push({type:"result-moved",text:`${code} → Access Issues`});}
+  else results.push({type:"result-updated",text:`${code} comment updated`});
+}
+function applyHubOnlyRestoreAction(code,parsed,results){
+  const hubIdx=state.sites.findIndex(s=>uc(s.code)===uc(code));
+  if(hubIdx<0){results.push({type:"result-ignored",text:`${code} hub not found`});return;}
+  const hubSite=state.sites[hubIdx];
+  const hubMeta=extractLineMeta(hubSite.originalLine,hubSite.category);
+  const restoreTime=hubMeta.dateTime||nowDisplayDateTime();
+  const termCodes=extractTerminalCodes(hubSite.originalLine);
+  const independent=termCodes.filter(tc=>state.sites.some(s=>s.id!==hubSite.id&&uc(s.code)===uc(tc)));
+  const remaining=termCodes.filter(tc=>!state.sites.some(s=>s.id!==hubSite.id&&uc(s.code)===uc(tc)));
+  markRestore(code);state.sites=state.sites.filter(s=>s.id!==hubSite.id);
+  results.push({type:"result-removed",text:`${code} hub restored`});
+  if(!remaining.length){if(independent.length)results.push({type:"result-ignored",text:`${independent.join(",")} kept as independent`});return;}
+  const processed=new Set();
+  for(const tc of remaining){
+    if(processed.has(tc))continue;
+    const tcNorm=normalizeRelCode(tc);
+    const tcChildren=(SITE_RELATIONS[tcNorm]||[]).map(normalizeRelCode).filter(c=>remaining.includes(c)&&c!==tcNorm);
+    if(tcChildren.length>0){
+      const termStr=`${tcChildren.length}T_${tcChildren.join(",")}`;
+      const newLine=buildLine({code:tc,power:hubMeta.power,terminals:termStr,order:"power-first",dateTime:restoreTime,tt:hubMeta.tt||"**",alarm:"",comment:hubMeta.comment||"Team on the way to the site."},hubSite.category);
+      state.sites.push({id:makeId(),code:tc,originalLine:newLine,section:hubSite.section,category:hubSite.category,importOrder:999999,pinTime:Date.now()});
+      results.push({type:"result-added",text:`${tc} rebuilt as sub-hub with ${tcChildren.join(",")}`});
+      processed.add(tc);tcChildren.forEach(c=>processed.add(c));
+    }else if(!processed.has(tc)){
+      const newLine=buildLine({code:tc,power:hubMeta.power,terminals:"",order:"power-first",dateTime:restoreTime,tt:hubMeta.tt||"**",alarm:"",comment:hubMeta.comment||"Team on the way to the site."},hubSite.category);
+      state.sites.push({id:makeId(),code:tc,originalLine:newLine,section:hubSite.section,category:hubSite.category,importOrder:999999,pinTime:Date.now()});
+      results.push({type:"result-added",text:`${tc} spawned as terminal`});
+      processed.add(tc);
+    }
+  }
+}
+function applyHubAndTerminalsRestoreAction(code,parsed,results){
+  const listedTerminals=extractTerminalCodes(`*${parsed.code}(${parsed.terminals||""})*`);
+  const hubIdx=state.sites.findIndex(s=>uc(s.code)===uc(code));
+  if(hubIdx>=0){markRestore(code);state.sites=state.sites.filter(s=>s.id!==state.sites[hubIdx]?.id);results.push({type:"result-removed",text:`${code} hub removed`});}
+  else results.push({type:"result-ignored",text:`${code} hub not found`});
+  for(const tc of listedTerminals){
+    const tIdx=state.sites.findIndex(s=>uc(s.code)===uc(tc));
+    if(tIdx<0){results.push({type:"result-ignored",text:`${tc} not in summary`});continue;}
+    const isIndepOld=state.sites[tIdx]?.section==="old";
+    if(isIndepOld){results.push({type:"result-ignored",text:`${tc} kept — independent old pending`});continue;}
+    markRestore(tc);const tid=state.sites[tIdx]?.id;
+    if(tid){state.sites=state.sites.filter(s=>s.id!==tid);results.push({type:"result-removed",text:`${tc} restored`});}
+  }
+}
+function applyDownAction(action,results,pendingBlockedMap){
+  const parsed=action.parsed;
+  if(isTerminalInsideBlockedHub(parsed.code,pendingBlockedMap)){results.push({type:"result-ignored",text:`${parsed.code} already terminal inside blocked hub`});return;}
+  let finalCategory=action.category==="auto"?detectCategoryFromMemory(parsed.code,parsed.power,action.isDirect):action.category;
+  let shouldFlap=isFlapNow(parsed.code);if(finalCategory==="temperature")shouldFlap=true;
+  const newTermCodes=extractTerminalCodes(`*${buildTag(parsed)}*`);
+  const targetIdx=findEntryIndex(parsed.code,finalCategory,"daily");
+  const primaryIdx=findPrimaryEntryIndex(parsed.code);
+  const blockedIdx=findEntryIndex(parsed.code,"blocked","daily");
+  if(targetIdx>=0){
+    const oldSite=state.sites[targetIdx];
+    const oldMeta=extractLineMeta(oldSite.originalLine,oldSite.category);
+    const updatedLine=buildLine({code:parsed.code,power:addFlapToPower(parsed.power||oldMeta.power,shouldFlap),terminals:parsed.terminals||oldMeta.terminals,order:parsed.order||oldMeta.order,dateTime:action.dateTime,tt:oldMeta.tt||"**",comment:oldMeta.comment||"Team on the way to the site."},finalCategory);
+    oldSite.originalLine=updatedLine;oldSite.pinTime=Date.now();
+    spawnMissingTerminalEntries(oldSite,newTermCodes);
+    results.push({type:"result-updated",text:`${parsed.code} time updated (comment preserved)`});
+    delete alarmMem[uc(parsed.code)];return;
+  }
+  const newLine=buildNewDownLine(parsed,action.dateTime,finalCategory,shouldFlap);
+  const hasRememberedAlarm=!!alarmMem[uc(parsed.code)];
+  if(!action.isHubDown&&action.isDirect&&!hasRememberedAlarm){
+    const hubIdx=findOHHubCandidate(finalCategory,parsed.power);
+    if(hubIdx>=0){addTerminalBesideHub(state.sites[hubIdx],parsed.code);results.push({type:"result-updated",text:`${parsed.code} added beside hub ${state.sites[hubIdx].code}`});delete alarmMem[uc(parsed.code)];return;}
+  }
+  if(primaryIdx>=0&&state.sites[primaryIdx].category!=="blocked"){
+    const oldSite=state.sites[primaryIdx];
+    spawnMissingTerminalEntries(oldSite,newTermCodes);
+    oldSite.originalLine=newLine;oldSite.section="daily";oldSite.category=finalCategory;oldSite.pinTime=Date.now();
+    results.push({type:"result-moved",text:`${parsed.code} moved to ${categoryLabel(finalCategory)}`});
+    delete alarmMem[uc(parsed.code)];return;
+  }
+  if(blockedIdx>=0){
+    state.sites.push({id:makeId(),code:parsed.code,originalLine:newLine,section:"daily",category:finalCategory,importOrder:999999,pinTime:Date.now()});
+    results.push({type:"result-added",text:`${parsed.code} added to ${categoryLabel(finalCategory)} (kept in blocked too)`});
+    delete alarmMem[uc(parsed.code)];return;
+  }
+  state.sites.push({id:makeId(),code:parsed.code,originalLine:newLine,section:"daily",category:finalCategory,importOrder:999999,pinTime:Date.now()});
+  results.push({type:"result-added",text:`${parsed.code} added to ${categoryLabel(finalCategory)}${shouldFlap?" (Flap)":""}`});
+  delete alarmMem[uc(parsed.code)];
+}
+function spawnMissingTerminalEntries(oldSite,newTermCodes=[]){
+  const oldTermCodes=extractTerminalCodes(oldSite.originalLine);
+  const oldMeta=extractLineMeta(oldSite.originalLine,oldSite.category);
+  oldTermCodes.filter(c=>!newTermCodes.includes(c)).forEach(tc=>{
+    if(state.sites.find(s=>uc(s.code)===uc(tc)&&s.category===oldSite.category&&s.section===oldSite.section))return;
+    const line=buildLine({code:tc,power:oldMeta.power,terminals:"",order:"power-first",dateTime:oldMeta.dateTime,tt:oldMeta.tt,alarm:oldMeta.alarm,comment:oldMeta.comment},oldSite.category);
+    state.sites.push({id:makeId(),code:tc,originalLine:line,section:oldSite.section,category:oldSite.category,importOrder:999999,pinTime:0});
+  });
+}
+function addTerminalBesideHub(hubSite,termCode){
+  const meta=extractLineMeta(hubSite.originalLine,hubSite.category);let terminals=meta.terminals||"";
+  if(uc(terminals).includes(uc(termCode)))return;
+  if(/^\d+T_OH(?:_[A-Z0-9]+)?$/i.test(terminals))terminals=terminals.replace(/_OH(?:_[A-Z0-9]+)?/i,"_"+uc(termCode));
+  else if(terminals.includes("_"))terminals+=","+uc(termCode);
+  else if(terminals)terminals+="_"+uc(termCode);
+  else terminals="1T_"+uc(termCode);
+  meta.terminals=terminals;hubSite.originalLine=buildLine(meta,hubSite.category);
+}
+function findOHHubCandidate(targetCategory,terminalPower){
+  const fam=powerFamily(terminalPower);
+  const candidates=state.sites.filter(s=>{
+    if(s.section!=="daily"||s.category!==targetCategory)return false;
+    const meta=extractLineMeta(s.originalLine,s.category);
+    if(!meta.terminals||!/OH/i.test(meta.terminals))return false;
+    if(fam&&powerFamily(meta.power)!==fam)return false;return true;
+  });
+  if(!candidates.length)return -1;
+  return state.sites.findIndex(s=>s.id===sortItems(candidates)[0].id);
+}
+function updateStats(){
+  const daily=state.sites.filter(s=>s.section==="daily");
+  const down=daily.filter(s=>s.category!=="blocked");
+  const blocked=daily.filter(s=>s.category==="blocked");
+  const old=state.sites.filter(s=>s.section==="old");
+  document.getElementById("statDown").textContent=groupCount(down);
+  document.getElementById("statBlocked").textContent=groupCount(blocked);
+  document.getElementById("statOld").textContent=groupCount(old);
+  document.getElementById("statTotal").textContent=state.sites.length;
+}
+
+// ═══ OUTPUT ═══
+// ═══ CHANGED: Added ROT Issues to output generation ═══
+function generateOutput(){
+  if(!state.dirty&&state.importedRawText){document.getElementById("summaryOutput").textContent=state.importedRawText;return;}
+  const dailyGroups={},oldGroups={};
+  DAILY_CAT_ORDER.forEach(cat=>dailyGroups[cat]=sortItems(state.sites.filter(s=>s.section==="daily"&&s.category===cat)));
+  OLD_CAT_ORDER.forEach(cat=>oldGroups[cat]=sortItems(state.sites.filter(s=>s.section==="old"&&s.category===cat)));
+  const dailyDownItems=DAILY_CAT_ORDER.filter(c=>c!=="blocked").flatMap(c=>dailyGroups[c]);
+  const dailyBlockedItems=dailyGroups["blocked"];
+  const dailyDownCount=groupCount(dailyDownItems);
+  const dailyBlockedCount=groupCount(dailyBlockedItems);
+  const totalDaily=dailyDownCount+dailyBlockedCount;
+  let out="";
+  out+="------------------------------------------------\n";
+  out+=`*Daily Sites Down/Blocked: ${pad(totalDaily)}(${pad(dailyDownCount)}/${pad(dailyBlockedCount)})*\n`;
+  out+="------------------------------------------------\n";
+
+  // ═══ CHANGED: Added ROT to dailyLabels and dailySeps ═══
+  const dailyLabels={
+    dg:"DG Issues",power:"Power Issues",temperature:"Temperature Issues",
+    thirdparty:"3rd Party Issues",fiber:"Fiber Issues",transmission:"Transmission Issues",
+    rot:"ROT Issues",
+    access:"Access Issues",blocked:"Blocked Sites"
+  };
+  const dailySeps={
+    dg:"----------------------------------",
+    power:"--------------------------",
+    temperature:"--------------------------",
+    thirdparty:"--------------------------------------",
+    fiber:"--------------------------",
+    transmission:"--------------------------",
+    rot:"----------------------------------",
+    access:"--------------------------",
+    blocked:"--------------------------"
+  };
+
+  DAILY_CAT_ORDER.forEach(cat=>{
+    const items=dailyGroups[cat];if(!items.length)return;
+    const count=groupCount(items);
+    out+=cat==="blocked"?`\n*Blocked Sites:${pad(count)}*\n`:`\n*${dailyLabels[cat]}: ${pad(count)}*\n`;
+    out+=(dailySeps[cat]||"--------------------------")+"\n";
+    const normalItems=items.filter(s=>!isRingDownCode(s.code));
+    const ringItems=items.filter(s=>isRingDownCode(s.code));
+    normalItems.forEach(s=>out+=s.originalLine+"\n");
+    ringItems.forEach(s=>out+=s.originalLine+"\n");
+  });
+
+  const allOld=state.sites.filter(s=>s.section==="old");
+  if(allOld.length){
+    const oldTotal=groupCount(allOld);
+    out+="\n----------------------------------------\n";
+    out+=`*Old Pending Sites Down: ${pad(oldTotal)}*\n`;
+    out+="----------------------------------------\n";
+
+    // ═══ CHANGED: Added ROT to oldLabels and oldSeps ═══
+    const oldLabels={
+      power:"Power issues",access:"Access Issues",thirdparty:"3rd Party Issues",
+      dg:"DG Issues",temperature:"Temperature Issues",fiber:"Fiber Issues",
+      transmission:"Transmission Issues",
+      rot:"ROT Issues",
+      special:"Temporary Dismantling/Under Relocation/Under Renovation/Under Dismantling/Under Vandalism"
+    };
+    const oldSeps={
+      power:"--------------------------",access:"--------------------------",
+      thirdparty:"--------------------------------------",dg:"----------------------------------",
+      temperature:"--------------------------",fiber:"--------------------------",
+      transmission:"--------------------------",
+      rot:"----------------------------------",
+      special:"-------------------------------------------------------------------------------------------------------------------------"
+    };
+    OLD_CAT_ORDER.forEach(cat=>{
+      const items=oldGroups[cat];if(!items.length)return;
+      const count=groupCount(items);
+      out+=`\n*${oldLabels[cat]}: ${pad(count)}*\n`;
+      out+=(oldSeps[cat]||"--------------------------")+"\n";
+      items.forEach(s=>out+=s.originalLine+"\n");
+    });
+  }
+  document.getElementById("summaryOutput").textContent=out.trim();
+}
+
+function copySummary(){
+  const box=document.getElementById("summaryOutput");
+  if(!box.textContent||box.textContent.includes("Click"))generateOutput();
+  navigator.clipboard.writeText(box.textContent).then(()=>notify("Summary copied.")).catch(()=>{
+    const ta=document.createElement("textarea");ta.value=box.textContent;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);notify("Summary copied.");
+  });
+}
+
+// ═══ MANAGE / EDIT ═══
+// ═══ CHANGED: Added rot class to site-item and ROT to categoryLabel ═══
+function renderSites(){
+  const list=document.getElementById("siteList");
+  const filter=document.getElementById("filterSection").value;
+  let items=state.sites.slice();
+  if(filter==="daily")items=items.filter(s=>s.section==="daily");
+  if(filter==="old")items=items.filter(s=>s.section==="old");
+  if(!items.length){list.innerHTML=`<div class="empty">No sites found.</div>`;return;}
+  items=sortItems(items);
+  list.innerHTML=items.map(site=>{
+    let cls="site-item";
+    if(site.category==="blocked")cls+=" blocked";
+    if(site.category==="access")cls+=" access";
+    if(site.category==="temperature")cls+=" temperature";
+    if(site.category==="fiber")cls+=" fiber";
+    if(site.category==="transmission")cls+=" transmission";
+    if(site.category==="dg")cls+=" dg";
+    if(site.category==="rot")cls+=" rot";
+    if(site.section==="old")cls+=" old";
+    const relNote=!isRingDownCode(site.code)?getSiteRelationNote(site.code):"";
+    return`<div class="${cls}">
+      <div class="site-head">
+        <div class="site-code">${escapeHtml(site.code)}</div>
+        <div class="badges"><span class="badge">${escapeHtml(site.section.toUpperCase())}</span><span class="badge">${escapeHtml(categoryLabel(site.category))}</span></div>
+      </div>
+      ${relNote?`<div class="relation-note" style="margin-bottom:6px;">🔗 ${escapeHtml(relNote)}</div>`:""}
+      <div class="site-line">${escapeHtml(site.originalLine)}</div>
+      <div class="site-actions">
+        <button class="btn btn-secondary btn-sm" onclick="openEdit('${site.id}')">✏️ Edit</button>
+        <button class="btn btn-warning btn-sm" onclick="quickAccess('${site.id}')">🚪 Access</button>
+        <button class="btn btn-danger btn-sm" onclick="quickRestore('${site.id}')">✅ Restore</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+function openEdit(id){
+  const site=state.sites.find(s=>s.id===id);if(!site)return;
+  editingId=id;
+  document.getElementById("editTitle").textContent="Edit "+site.code;
+  document.getElementById("editSection").value=site.section;
+  document.getElementById("editCategory").value=site.category;
+  document.getElementById("editLine").value=site.originalLine;
+  document.getElementById("editModal").classList.add("active");
+}
+function closeModal(){document.getElementById("editModal").classList.remove("active");editingId=null;}
+function saveEdit(){
+  const idx=state.sites.findIndex(s=>s.id===editingId);if(idx<0)return;
+  state.sites[idx].section=document.getElementById("editSection").value;
+  state.sites[idx].category=document.getElementById("editCategory").value;
+  state.sites[idx].originalLine=document.getElementById("editLine").value;
+  state.sites[idx].code=extractSiteCode(state.sites[idx].originalLine)||state.sites[idx].code;
+  state.dirty=true;saveState();renderSites();closeModal();notify("Site updated.");
+}
+function moveCurrentToAccess(){
+  const idx=state.sites.findIndex(s=>s.id===editingId);if(idx<0)return;
+  state.sites[idx].category="access";state.sites[idx].section="daily";
+  state.dirty=true;saveState();renderSites();closeModal();notify("Moved to Access Issues.");
+}
+function restoreCurrent(){if(!editingId)return;quickRestore(editingId);closeModal();}
+function quickAccess(id){
+  const idx=state.sites.findIndex(s=>s.id===id);if(idx<0)return;
+  state.sites[idx].category="access";state.sites[idx].section="daily";
+  state.dirty=true;saveState();renderSites();notify("Moved to Access Issues.");
+}
+function quickRestore(id){
+  const idx=state.sites.findIndex(s=>s.id===id);if(idx<0)return;
+  const code=state.sites[idx].code;
+  if(confirm(`Remove ${code} from summary?`)){
+    markRestore(code);state.sites=state.sites.filter(s=>s.id!==id);
+    state.dirty=true;saveState();renderSites();notify(`${code} restored and removed.`);
+  }
+}
+function clearAll(){
+  if(!confirm("Delete all data?"))return;
+  state={sites:[],importedRawText:"",dirty:false,theme:state.theme};
+  alarmMem={};flapMem={};pendingActions=[];saveState();
+  document.getElementById("summaryOutput").textContent=`Click "Generate Summary" to view output.`;
+  document.getElementById("importText").value="";document.getElementById("alarmText").value="";
+  document.getElementById("importResult").innerHTML="";document.getElementById("alarmResult").innerHTML="";
+  renderSites();notify("All data cleared.");
+}
+document.getElementById("editModal").addEventListener("click",function(e){if(e.target===this)closeModal();});
+</script>
+<footer class="footer">
+  <p>
+    &copy; 2026 All Rights Reserved.
+    Software Development by <strong>Eng. Ahmed Moustafa</strong> |
+    Testing &amp; Quality Assurance by <strong>Eng. Moustafa Magdy</strong>
+  </p>
+</footer>
+<style>
+  .footer{color:#07140b;position:fixed;bottom:0;left:0;width:100%;text-align:center;padding:10px;background-color:#25d366;border-top:1px solid #ccc;font-size:14px;}
+</style>
+</body>
+</html>
