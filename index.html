@@ -1323,15 +1323,32 @@ function clearAll(){
 }
 document.getElementById("editModal").addEventListener("click",function(e){if(e.target===this)closeModal();});
 </script>
-<footer class="footer">
-  <p>
-    &copy; 2026 All Rights Reserved.
-    Software Development by <strong>Eng. Ahmed Moustafa</strong> |
-    Testing &amp; Quality Assurance by <strong>Eng. Moustafa Magdy</strong>
-  </p>
-</footer>
-<style>
-  .footer{color:#07140b;position:fixed;bottom:0;left:0;width:100%;text-align:center;padding:10px;background-color:#25d366;border-top:1px solid #ccc;font-size:14px;}
-</style>
+    <footer class="footer">
+        <p>
+            &copy; 2026 All Rights Reserved.
+            Software Development by <strong>Eng. Ahmed Moustafa</strong> |
+            Testing &amp; Quality Assurance by <strong>Eng. Moustafa Magdy</strong>
+        </p>
+    </footer>
 </body>
+<style>
+body{
+    margin:0;
+    padding-bottom:60px; /* Same or slightly larger than footer height */
+}
+
+.footer{
+    position:fixed;
+    left:0;
+    bottom:0;
+    width:100%;
+    padding:10px;
+    background:#25d366;
+    color:#07140b;
+    border-top:1px solid #ccc;
+    text-align:center;
+    font-size:14px;
+    box-sizing:border-box;
+}
+</style>
 </html>
