@@ -778,7 +778,8 @@ function countContribution(site,sameCategoryItems){
     const named=[...rs.sides,...rs.dependents];
     let duplicates=0;
     for(const c of named){
-      if(state.sites.some(s=>s.id!==site.id&&uc(s.code.trim())===uc(c.trim())))duplicates++;
+      // Only subtract duplicates that appear as their own line in the SAME category+section
+      if(state.sites.some(s=>s.id!==site.id&&s.category===site.category&&s.section===site.section&&uc(s.code.trim())===uc(c.trim())))duplicates++;
     }
     return Math.max(0,ringStatusBaseCount(rs)-duplicates);
   }
@@ -1332,7 +1333,8 @@ function generateOutput(){
   const dailyGroups={},oldGroups={};
   const dailyCustom=customCatKeys().filter(k=>state.sites.some(s=>s.section==="daily"&&s.category===k));
   const oldCustom=customCatKeys().filter(k=>state.sites.some(s=>s.section==="old"&&s.category===k));
-  const dailyOrder=[...DAILY_CAT_ORDER,...dailyCustom];
+  // Order: DG, Power, custom categories, the rest, Blocked Sites always last
+  const dailyOrder=["dg","power",...dailyCustom,"temperature","thirdparty","fiber","transmission","rot","access","blocked"];
   const oldOrder=[...OLD_CAT_ORDER,...oldCustom];
   dailyOrder.forEach(cat=>dailyGroups[cat]=sortItems(state.sites.filter(s=>s.section==="daily"&&s.category===cat)));
   oldOrder.forEach(cat=>oldGroups[cat]=sortItems(state.sites.filter(s=>s.section==="old"&&s.category===cat)));
@@ -1353,10 +1355,7 @@ function generateOutput(){
     const label=dailyLabels[cat]||((state.customCats||{})[cat])||cat;
     out+=cat==="blocked"?`\n*Blocked Sites:${pad(count)}*\n`:`\n*${label}: ${pad(count)}*\n`;
     out+=(dailySeps[cat]||"-".repeat(Math.max(20,label.length+16)))+"\n";
-    const normalItems=items.filter(s=>!isRingDownCode(s.code)&&!isRingStatusCode(s.code));
-    const ringItems=items.filter(s=>isRingDownCode(s.code)||isRingStatusCode(s.code));
-    normalItems.forEach(s=>out+=s.originalLine+"\n");
-    ringItems.forEach(s=>out+=s.originalLine+"\n");
+    items.forEach(s=>out+=s.originalLine+"\n");
   });
   const allOld=state.sites.filter(s=>s.section==="old");
   if(allOld.length){
