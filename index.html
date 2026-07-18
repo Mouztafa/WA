@@ -55,6 +55,7 @@ textarea{min-height:240px;resize:vertical;font-family:"Courier New",monospace;li
 .site-item.dg{border-left-color:#f97316}
 .site-item.rot{border-left-color:#e11d48}
 .site-item.old{border-left-color:var(--purple)}
+.site-item.other{border-left-color:#14b8a6}
 .site-head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .site-code{font-weight:800;color:var(--primary)}
 .badges{display:flex;gap:6px;flex-wrap:wrap}
@@ -133,12 +134,14 @@ textarea{min-height:240px;resize:vertical;font-family:"Courier New",monospace;li
     <div class="hint">
       Supports down, blocked, restore, hub-only restore, Ring Down, comment updates.<br>
       OH terminals count as 0. Named terminals count only. ROT Issues supported.<br>
+      Ring Status supported: <b>*Ring*(GAF217-GAF064)(6D_SIAF001,...)</b> counts 2 sides + dependents (e.g. 8).<br>
+      New: pick <b>✏️ Other</b> and type any category name you want (e.g. Wafra, Mutlaa).<br>
       After pressing <b>Process</b>, edit times/categories before applying.
     </div>
     <div class="alarm-controls">
       <div>
         <label>Category Override:</label>
-        <select id="alarmCategory">
+        <select id="alarmCategory" onchange="document.getElementById('alarmOtherWrap').style.display=this.value==='__other__'?'block':'none'">
           <option value="auto">🔍 Auto-detect</option>
           <option value="dg">DG Issues</option>
           <option value="power">Power Issues</option>
@@ -149,7 +152,12 @@ textarea{min-height:240px;resize:vertical;font-family:"Courier New",monospace;li
           <option value="rot">ROT Issues</option>
           <option value="access">Access Issues</option>
           <option value="blocked">Blocked Sites</option>
+          <option value="__other__">✏️ Other (name it yourself)...</option>
         </select>
+      </div>
+      <div id="alarmOtherWrap" style="display:none;">
+        <label>Other Category Name:</label>
+        <input type="text" id="alarmOtherName" placeholder="e.g. Wafra, Mutlaa" style="min-width:180px;"/>
       </div>
       <div>
         <label>Default Date/Time:</label>
@@ -171,6 +179,7 @@ textarea{min-height:240px;resize:vertical;font-family:"Courier New",monospace;li
         <option value="daily">Daily Only</option>
         <option value="old">Old Pending Only</option>
       </select>
+      <button class="btn btn-secondary" onclick="openCatManager()">🏷️ Categories</button>
       <button class="btn btn-danger" onclick="clearAll()">🗑️ Reset All</button>
     </div>
     <div class="site-list" id="siteList"></div>
@@ -192,7 +201,7 @@ textarea{min-height:240px;resize:vertical;font-family:"Courier New",monospace;li
       </div>
       <div class="form-group">
         <label>Category</label>
-        <select id="editCategory">
+        <select id="editCategory" onchange="document.getElementById('editOtherName').style.display=this.value==='__other__'?'block':'none'">
           <option value="dg">DG Issues</option>
           <option value="power">Power Issues</option>
           <option value="temperature">Temperature Issues</option>
@@ -203,7 +212,9 @@ textarea{min-height:240px;resize:vertical;font-family:"Courier New",monospace;li
           <option value="access">Access Issues</option>
           <option value="blocked">Blocked Sites</option>
           <option value="special">Temp Dismantling / Relocation / Renovation / Vandalism</option>
+          <option value="__other__">✏️ Other (name it yourself)...</option>
         </select>
+        <input type="text" id="editOtherName" placeholder="Category name (e.g. Wafra)" style="display:none;margin-top:8px;"/>
       </div>
     </div>
     <div class="form-group">
@@ -213,6 +224,20 @@ textarea{min-height:240px;resize:vertical;font-family:"Courier New",monospace;li
     <button class="btn btn-primary" onclick="saveEdit()">💾 Save</button>
     <button class="btn btn-warning" onclick="moveCurrentToAccess()">🚪 Move to Access</button>
     <button class="btn btn-danger" onclick="restoreCurrent()">✅ Restore</button>
+  </div>
+</div>
+<div class="modal" id="catModal">
+  <div class="modal-box" style="width:min(560px,100%)">
+    <div class="modal-head">
+      <h3 style="margin:0;color:var(--primary);">🏷️ Custom Categories</h3>
+      <button class="close-btn" onclick="closeCatManager()">&times;</button>
+    </div>
+    <div class="hint">Create and manage your own categories (e.g. Wafra, Mutlaa). Custom categories appear at the end of the generated summary and are imported back automatically.</div>
+    <div id="catList"></div>
+    <div style="margin-top:10px;">
+      <button class="btn btn-primary" onclick="addCustomCat()">➕ New Category</button>
+      <button class="btn btn-secondary" onclick="closeCatManager()">Close</button>
+    </div>
   </div>
 </div>
 <script>
@@ -581,8 +606,8 @@ let editingId=null;
 let pendingActions=[];
 
 function loadState(){
-  try{return{sites:[],importedRawText:"",dirty:false,theme:"dark",...JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}")};}
-  catch{return{sites:[],importedRawText:"",dirty:false,theme:"dark"};}
+  try{return{sites:[],importedRawText:"",dirty:false,theme:"dark",customCats:{},...JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}")};}
+  catch{return{sites:[],importedRawText:"",dirty:false,theme:"dark",customCats:{}};}
 }
 function saveState(){
   localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
@@ -596,7 +621,40 @@ function uc(s){return(s||"").toUpperCase();}
 function makeId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
 function escapeHtml(str){return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function categoryLabel(cat){
-  return{dg:"DG Issues",power:"Power Issues",temperature:"Temperature Issues",thirdparty:"3rd Party Issues",fiber:"Fiber Issues",transmission:"Transmission Issues",rot:"ROT Issues",access:"Access Issues",blocked:"Blocked Sites",special:"Temporary Dismantling/Under Relocation/Under Renovation/Under Dismantling/Under Vandalism"}[cat]||cat;
+  const map={dg:"DG Issues",power:"Power Issues",temperature:"Temperature Issues",thirdparty:"3rd Party Issues",fiber:"Fiber Issues",transmission:"Transmission Issues",rot:"ROT Issues",access:"Access Issues",blocked:"Blocked Sites",special:"Temporary Dismantling/Under Relocation/Under Renovation/Under Dismantling/Under Vandalism"};
+  if(map[cat])return map[cat];
+  if(state&&state.customCats&&state.customCats[cat])return state.customCats[cat];
+  return cat;
+}
+// --- Custom "Other" categories (user-named, e.g. Wafra / Mutlaa) ---
+function customKeyFromLabel(label){return "other_"+(label||"").toLowerCase().replace(/[^a-z0-9]+/g,"");}
+function ensureCustomCategory(label){
+  label=(label||"").trim();
+  if(!label)return null;
+  const key=customKeyFromLabel(label);
+  if(!state.customCats)state.customCats={};
+  if(!state.customCats[key])state.customCats[key]=label;
+  return key;
+}
+function customCatKeys(){return Object.keys((state&&state.customCats)||{});}
+function resolveOtherSelect(selectValue,inputElId){
+  if(selectValue!=="__other__")return selectValue;
+  const inp=inputElId?document.getElementById(inputElId):null;
+  let name=(inp?inp.value.trim():"");
+  if(!name)name=(prompt("Enter custom category name (e.g. Wafra):")||"").trim();
+  if(!name)return null;
+  const key=ensureCustomCategory(name);
+  if(inp)inp.value=name;
+  return key;
+}
+function catOptionsHTML(selectedValue,includeAuto=true){
+  const base=[[ "dg","DG Issues"],["power","Power Issues"],["temperature","Temperature Issues"],["thirdparty","3rd Party Issues"],["fiber","Fiber Issues"],["transmission","Transmission Issues"],["rot","ROT Issues"],["access","Access Issues"],["blocked","Blocked Sites"]];
+  let html="";
+  if(includeAuto)html+=`<option value="auto" ${selectedValue==="auto"?"selected":""}>🔍 Auto-detect</option>`;
+  html+=base.map(([v,l])=>`<option value="${v}" ${selectedValue===v?"selected":""}>${l}</option>`).join("");
+  html+=customCatKeys().map(k=>`<option value="${k}" ${selectedValue===k?"selected":""}>${escapeHtml(state.customCats[k])}</option>`).join("");
+  html+=`<option value="__other__" ${selectedValue==="__other__"?"selected":""}>✏️ Other (name it yourself)...</option>`;
+  return html;
 }
 function todayKey(){const d=new Date();return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
 function cleanFlapMemory(){const today=todayKey(),clean={};for(const k in flapMem)if(flapMem[k].date===today)clean[k]=flapMem[k];flapMem=clean;}
@@ -626,9 +684,43 @@ document.addEventListener("DOMContentLoaded",()=>{
 
 function isRingDownCode(code){return/^RING DOWN BETWEEN/i.test((code||"").trim());}
 
+// --- Ring Status: *Ring*(SIDE1-SIDE2)(6D_dep1,dep2,...) — count = 2 sides + N dependents ---
+function isRingStatusCode(code){return/^RING\(/i.test((code||"").trim());}
+function parseRingStatusLine(line){
+  let t=(line||"").trim();if(t.startsWith("*"))t=t.slice(1);
+  const m=t.match(/^Ring\*?\s*\(([^)]*)\)\s*(\(([^)]*)\))?/i);
+  if(!m)return null;
+  const sides=(m[1]||"").split("-").map(s=>uc(s.trim())).filter(s=>/^[A-Z]{2,6}\d{2,5}[A-Z]?$/.test(s));
+  const depRaw=(m[3]||"").trim();
+  const depM=depRaw.match(/^(\d+)D/i);
+  const depNumber=depM?parseInt(depM[1],10):0;
+  const after=depRaw.replace(/^\d+D_?/i,"").trim();
+  const depIsOh=/^OH$/i.test(after);
+  let dependents=[];
+  if(after&&!depIsOh){
+    dependents=after.split(/[,_]/).map(s=>uc(s.trim())).filter(s=>s&&!/^\d/.test(s)&&!["OH","4G","3G","2G","VIP"].includes(s)&&!/^(OH|VIP)_/i.test(s)&&!/_?(OH|VIP)$/i.test(s));
+  }
+  const code=sides.length?`RING(${sides.join("-")})`:uc(`RING(${(m[1]||"").replace(/\s+/g,"")})`);
+  return{code,sides,dependents,depNumber,depIsOh,depRaw};
+}
+function ringStatusBaseCount(rs){
+  if(!rs)return 0;
+  if(rs.dependents.length>0)return rs.sides.length+rs.dependents.length;
+  return rs.sides.length+(rs.depIsOh?0:rs.depNumber);
+}
+function ringStatusCountInfo(rs){return`${rs.sides.length} sides + ${rs.dependents.length>0?rs.dependents.length:(rs.depIsOh?0:rs.depNumber)} dependents = ${ringStatusBaseCount(rs)}`;}
+function buildRingStatusLine(parsed,dateTime){
+  const sides=parsed.sides.join("-");
+  let depStr="";
+  if(parsed.dependents.length)depStr=`(${(parsed.depNumber||parsed.dependents.length)}D_${parsed.dependents.join(",")})`;
+  else if(parsed.depNumber>0)depStr=parsed.depIsOh?`(${parsed.depNumber}D_OH)`:`(${parsed.depNumber}D)`;
+  else if(parsed.depRaw)depStr=`(${parsed.depRaw})`;
+  return(`*Ring*(${sides})${depStr} ${dateTime||""}`).trim();
+}
+
 function countSectors(line){
   const code=extractSiteCode(line);
-  if(isRingDownCode(code))return 0;
+  if(isRingDownCode(code)||isRingStatusCode(code))return 0;
   const m=line.match(/\*?([A-Z]{2,4}\d{2,4})([A-Z](?:\/[A-Z])*)/i);
   return(m&&m[2])?m[2].split("/").length:1;
 }
@@ -680,6 +772,16 @@ function countContribution(site,sameCategoryItems){
     }
     return Math.max(0,termCodes.length-duplicates);
   }
+  if(isRingStatusCode(code)){
+    const rs=parseRingStatusLine(site.originalLine);
+    if(!rs)return 0;
+    const named=[...rs.sides,...rs.dependents];
+    let duplicates=0;
+    for(const c of named){
+      if(state.sites.some(s=>s.id!==site.id&&uc(s.code.trim())===uc(c.trim())))duplicates++;
+    }
+    return Math.max(0,ringStatusBaseCount(rs)-duplicates);
+  }
   const sectors=countSectors(site.originalLine);
   if(site.category==="blocked")return sectors;
   const terminals=getEffectiveTerminalCount(site.originalLine);
@@ -704,6 +806,8 @@ function extractSiteCode(line){
   let t=line.trim();if(t.startsWith("*"))t=t.slice(1);
   const rdm=t.match(/^(Ring Down between\s+\S+\s+and\s+\S+)/i);
   if(rdm)return uc(rdm[1]);
+  const rs=parseRingStatusLine(line);
+  if(rs)return rs.code;
   const m=t.match(/^([^\s(*]+)/);return m?uc(m[1].replace(/\*+$/,"")):"";
 }
 function parseTag(tagPart){
@@ -748,6 +852,13 @@ function extractLineMeta(line,category){
 function buildLine(meta,category){
   const code=uc(meta.code||"");
   if(isRingDownCode(code)){const tag=buildTag(meta);return`*${tag}* ${meta.dateTime||""}`.trim();}
+  if(isRingStatusCode(code)){
+    const sides=(meta.power&&meta.power.includes("-"))?meta.power:code.replace(/^RING\(/,"").replace(/\)$/,"");
+    let line=`*Ring*(${uc(sides)})`;
+    if(meta.terminals)line+=`(${meta.terminals})`;
+    if(meta.dateTime)line+=` ${meta.dateTime}`;
+    return line.trim();
+  }
   const tag=`*${buildTag(meta)}*`;let line=tag;
   if(meta.dateTime)line+=` ${meta.dateTime}`;
   if(meta.tt)line+=` - ${meta.tt}`;else if(category!=="special")line+=` - **`;
@@ -783,6 +894,9 @@ function importSummary(){
     if(/^(\*?)Access\s*[Ii]ssues?:/i.test(line.trim())){category="access";continue;}
     if(/^(\*?)Blocked\s*Sites?\s*:?\s*\d/i.test(line.trim())){category="blocked";continue;}
     if(/^\*?Temporary Dismantling\/Under Relocation\/Under Renovation\/Under Dismantling\/Under Vandalism:\s*\d+\*?$/i.test(line.trim())){category="special";continue;}
+    // Custom user-named category header, e.g. *Wafra: 02* / *Mutlaa: 01*
+    const custHdr=line.trim().match(/^\*([^*]+?)\s*:\s*\d+\*?$/);
+    if(custHdr){const custKey=ensureCustomCategory(custHdr[1].trim());if(custKey){category=custKey;continue;}}
     if(isHeaderOrSeparator(line))continue;
     const code=extractSiteCode(line);if(!code)continue;
     const key=section+"_"+category;if(!orderCounters[key])orderCounters[key]=0;
@@ -867,7 +981,12 @@ function extractCommentFromLine(line,code){
 }
 function preparePendingActions(){
   const text=document.getElementById("alarmText").value;if(!text.trim()){notify("Paste alarms first.");return;}
-  const defaultCat=document.getElementById("alarmCategory").value;
+  let defaultCat=document.getElementById("alarmCategory").value;
+  if(defaultCat==="__other__"){
+    defaultCat=resolveOtherSelect("__other__","alarmOtherName");
+    if(!defaultCat){notify("Enter a name for the Other category (e.g. Wafra).");return;}
+    document.getElementById("alarmOtherWrap").style.display="block";
+  }
   const defaultDT=localInputToDisplay(document.getElementById("alarmDateTime").value);
   const lines=deduplicateAlarmLines(text.split("\n"));
   pendingActions=[];let i=0;
@@ -876,6 +995,11 @@ function preparePendingActions(){
     if(/^Ring Down between/i.test(cur.replace(/\*/g,"").trim())){
       const parsed=parseAlarmInputLine(cur);
       if(parsed)pendingActions.push({id:makeId(),type:"ringDown",parsed,category:defaultCat==="auto"?"power":defaultCat,dateTime:defaultDT,raw:cur});
+      i++;continue;
+    }
+    if(/^Ring\*?\s*\(/i.test(cur.replace(/^\*+/,"").trim())&&!/(restored|cleared)/i.test(cur)&&!/^Ring Down between/i.test(cur)){
+      const rs=parseRingStatusLine(cur);
+      if(rs&&rs.sides.length)pendingActions.push({id:makeId(),type:"ringStatus",parsed:{...rs,code:rs.code},category:defaultCat==="auto"?"power":defaultCat,dateTime:defaultDT,raw:cur});
       i++;continue;
     }
     if(isClearedLine(cur)&&!/Site\s*(direct\s*)?Down/i.test(cur)){
@@ -934,9 +1058,12 @@ function renderPendingActions(){
   if(!pendingActions.length){box.innerHTML=`<div class="result-box"><div class="result-ignored">No valid actions detected.</div></div>`;return;}
   let html=`<div class="result-box">`;
   pendingActions.forEach(a=>{
-    if(a.type==="down"||a.type==="blocked"||a.type==="ringDown"){
+    if(a.type==="down"||a.type==="blocked"||a.type==="ringDown"||a.type==="ringStatus"){
       const code=a.parsed.code;
-      const relNote=!isRingDownCode(code)?getSiteRelationNote(code):"";
+      let relNote="";
+      if(a.type==="ringStatus"){
+        relNote=`Count: ${ringStatusCountInfo(a.parsed)}`;
+      }else if(!isRingDownCode(code))relNote=getSiteRelationNote(code);
       const alreadyNote=a.alreadyExists?`<div style="color:var(--warning);font-size:12px;margin-top:4px;">⚠️ Already in summary — will update time only, comment preserved</div>`:"";
       html+=`<div class="pending-item">
         <div class="pending-head"><div class="pending-code">${escapeHtml(code)} — ${a.type.toUpperCase()}</div></div>
@@ -945,18 +1072,10 @@ function renderPendingActions(){
         <div class="pending-grid">
           <div>
             <label style="display:block;margin-bottom:4px;color:var(--muted);font-size:12px;font-weight:700;">Category</label>
-            <select id="pending-cat-${a.id}">
-              <option value="auto" ${a.category==="auto"?"selected":""}>🔍 Auto-detect</option>
-              <option value="dg" ${a.category==="dg"?"selected":""}>DG Issues</option>
-              <option value="power" ${a.category==="power"?"selected":""}>Power Issues</option>
-              <option value="temperature" ${a.category==="temperature"?"selected":""}>Temperature Issues</option>
-              <option value="thirdparty" ${a.category==="thirdparty"?"selected":""}>3rd Party Issues</option>
-              <option value="fiber" ${a.category==="fiber"?"selected":""}>Fiber Issues</option>
-              <option value="transmission" ${a.category==="transmission"?"selected":""}>Transmission Issues</option>
-              <option value="rot" ${a.category==="rot"?"selected":""}>ROT Issues</option>
-              <option value="access" ${a.category==="access"?"selected":""}>Access Issues</option>
-              <option value="blocked" ${a.category==="blocked"?"selected":""}>Blocked Sites</option>
+            <select id="pending-cat-${a.id}" onchange="document.getElementById('pending-other-${a.id}').style.display=this.value==='__other__'?'block':'none'">
+              ${catOptionsHTML(a.category,true)}
             </select>
+            <input type="text" id="pending-other-${a.id}" placeholder="Category name (e.g. Wafra)" value="${escapeHtml(a.otherName||"")}" style="display:${a.category==="__other__"?"block":"none"};margin-top:6px;"/>
           </div>
           <div>
             <label style="display:block;margin-bottom:4px;color:var(--muted);font-size:12px;font-weight:700;">Date/Time</label>
@@ -987,9 +1106,16 @@ function applyPendingActions(){
   const results=[];
   const blockedActions=[],otherActions=[];
   pendingActions.forEach(a=>{
-    if(a.type==="down"||a.type==="blocked"||a.type==="ringDown"){
+    if(a.type==="down"||a.type==="blocked"||a.type==="ringDown"||a.type==="ringStatus"){
       const catEl=document.getElementById(`pending-cat-${a.id}`);const dtEl=document.getElementById(`pending-dt-${a.id}`);
-      if(catEl)a.category=catEl.value;if(dtEl)a.dateTime=localInputToDisplay(dtEl.value||displayToLocalInput(a.dateTime));
+      if(catEl){
+        a.category=catEl.value;
+        if(a.category==="__other__"){
+          const resolved=resolveOtherSelect("__other__",`pending-other-${a.id}`);
+          a.category=resolved||"power";
+        }
+      }
+      if(dtEl)a.dateTime=localInputToDisplay(dtEl.value||displayToLocalInput(a.dateTime));
     }
     if(a.type==="blocked")blockedActions.push(a);else otherActions.push(a);
   });
@@ -1005,6 +1131,7 @@ function applyPendingActions(){
       case"hubAndTerminalsRestore":applyHubAndTerminalsRestoreAction(a.code,a.parsed,results);break;
       case"down":applyDownAction(a,results,pendingBlockedMap);break;
       case"ringDown":applyRingDownAction(a,results);break;
+      case"ringStatus":applyRingStatusAction(a,results);break;
       case"cancelled":results.push({type:"result-cancelled",text:`${a.code} blocked+cleared cancelled`});break;
       default:results.push({type:"result-ignored",text:`${a.raw||"?"} ignored`});
     }
@@ -1015,6 +1142,16 @@ function applyPendingActions(){
   html+=`</div>`;document.getElementById("alarmResult").innerHTML=html;
   pendingActions=[];notify("Actions applied.");
 }
+function applyRingStatusAction(action,results){
+  const rs=action.parsed;const code=uc(rs.code);
+  const category=action.category==="auto"?"power":action.category;
+  const dateTime=action.dateTime||nowDisplayDateTime();
+  const newLine=buildRingStatusLine(rs,dateTime);
+  const existIdx=state.sites.findIndex(s=>isRingStatusCode(s.code)&&uc(s.code)===code&&s.category===category&&s.section==="daily");
+  if(existIdx>=0){state.sites[existIdx].originalLine=newLine;state.sites[existIdx].pinTime=Date.now();results.push({type:"result-updated",text:`Ring Status ${sidesInfo(rs)} updated in ${categoryLabel(category)}`});}
+  else{state.sites.push({id:makeId(),code,originalLine:newLine,section:"daily",category,importOrder:999999,pinTime:Date.now()});results.push({type:"result-added",text:`Ring Status ${rs.sides.join("-")} added to ${categoryLabel(category)} — counts as ${ringStatusBaseCount(rs)} (${rs.sides.length} sides + ${rs.dependents.length>0?rs.dependents.length:(rs.depIsOh?0:rs.depNumber)} dependents)`});}
+}
+function sidesInfo(rs){return rs.sides.join("-");}
 function applyRingDownAction(action,results){
   const code=uc(action.parsed.code);const category=action.category==="auto"?"power":action.category;
   const dateTime=action.dateTime||nowDisplayDateTime();const terminals=action.parsed.terminals||"";
@@ -1193,9 +1330,13 @@ function updateStats(){
 function generateOutput(){
   if(!state.dirty&&state.importedRawText){document.getElementById("summaryOutput").textContent=state.importedRawText;return;}
   const dailyGroups={},oldGroups={};
-  DAILY_CAT_ORDER.forEach(cat=>dailyGroups[cat]=sortItems(state.sites.filter(s=>s.section==="daily"&&s.category===cat)));
-  OLD_CAT_ORDER.forEach(cat=>oldGroups[cat]=sortItems(state.sites.filter(s=>s.section==="old"&&s.category===cat)));
-  const dailyDownItems=DAILY_CAT_ORDER.filter(c=>c!=="blocked").flatMap(c=>dailyGroups[c]);
+  const dailyCustom=customCatKeys().filter(k=>state.sites.some(s=>s.section==="daily"&&s.category===k));
+  const oldCustom=customCatKeys().filter(k=>state.sites.some(s=>s.section==="old"&&s.category===k));
+  const dailyOrder=[...DAILY_CAT_ORDER,...dailyCustom];
+  const oldOrder=[...OLD_CAT_ORDER,...oldCustom];
+  dailyOrder.forEach(cat=>dailyGroups[cat]=sortItems(state.sites.filter(s=>s.section==="daily"&&s.category===cat)));
+  oldOrder.forEach(cat=>oldGroups[cat]=sortItems(state.sites.filter(s=>s.section==="old"&&s.category===cat)));
+  const dailyDownItems=dailyOrder.filter(c=>c!=="blocked").flatMap(c=>dailyGroups[c]);
   const dailyBlockedItems=dailyGroups["blocked"];
   const dailyDownCount=groupCount(dailyDownItems);
   const dailyBlockedCount=groupCount(dailyBlockedItems);
@@ -1206,13 +1347,14 @@ function generateOutput(){
   out+="------------------------------------------------\n";
   const dailyLabels={dg:"DG Issues",power:"Power Issues",temperature:"Temperature Issues",thirdparty:"3rd Party Issues",fiber:"Fiber Issues",transmission:"Transmission Issues",rot:"ROT Issues",access:"Access Issues",blocked:"Blocked Sites"};
   const dailySeps={dg:"----------------------------------",power:"--------------------------",temperature:"--------------------------",thirdparty:"--------------------------------------",fiber:"--------------------------",transmission:"--------------------------",rot:"----------------------------------",access:"--------------------------",blocked:"--------------------------"};
-  DAILY_CAT_ORDER.forEach(cat=>{
+  dailyOrder.forEach(cat=>{
     const items=dailyGroups[cat];if(!items.length)return;
     const count=groupCount(items);
-    out+=cat==="blocked"?`\n*Blocked Sites:${pad(count)}*\n`:`\n*${dailyLabels[cat]}: ${pad(count)}*\n`;
-    out+=(dailySeps[cat]||"--------------------------")+"\n";
-    const normalItems=items.filter(s=>!isRingDownCode(s.code));
-    const ringItems=items.filter(s=>isRingDownCode(s.code));
+    const label=dailyLabels[cat]||((state.customCats||{})[cat])||cat;
+    out+=cat==="blocked"?`\n*Blocked Sites:${pad(count)}*\n`:`\n*${label}: ${pad(count)}*\n`;
+    out+=(dailySeps[cat]||"-".repeat(Math.max(20,label.length+16)))+"\n";
+    const normalItems=items.filter(s=>!isRingDownCode(s.code)&&!isRingStatusCode(s.code));
+    const ringItems=items.filter(s=>isRingDownCode(s.code)||isRingStatusCode(s.code));
     normalItems.forEach(s=>out+=s.originalLine+"\n");
     ringItems.forEach(s=>out+=s.originalLine+"\n");
   });
@@ -1224,11 +1366,12 @@ function generateOutput(){
     out+="----------------------------------------\n";
     const oldLabels={power:"Power issues",access:"Access Issues",thirdparty:"3rd Party Issues",dg:"DG Issues",temperature:"Temperature Issues",fiber:"Fiber Issues",transmission:"Transmission Issues",rot:"ROT Issues",special:"Temporary Dismantling/Under Relocation/Under Renovation/Under Dismantling/Under Vandalism"};
     const oldSeps={power:"--------------------------",access:"--------------------------",thirdparty:"--------------------------------------",dg:"----------------------------------",temperature:"--------------------------",fiber:"--------------------------",transmission:"--------------------------",rot:"----------------------------------",special:"-------------------------------------------------------------------------------------------------------------------------"};
-    OLD_CAT_ORDER.forEach(cat=>{
+    oldOrder.forEach(cat=>{
       const items=oldGroups[cat];if(!items.length)return;
       const count=groupCount(items);
-      out+=`\n*${oldLabels[cat]}: ${pad(count)}*\n`;
-      out+=(oldSeps[cat]||"--------------------------")+"\n";
+      const label=oldLabels[cat]||((state.customCats||{})[cat])||cat;
+      out+=`\n*${label}: ${pad(count)}*\n`;
+      out+=(oldSeps[cat]||"-".repeat(Math.max(20,label.length+16)))+"\n";
       items.forEach(s=>out+=s.originalLine+"\n");
     });
   }
@@ -1249,8 +1392,10 @@ function renderSites(){
   if(filter==="old")items=items.filter(s=>s.section==="old");
   if(!items.length){list.innerHTML=`<div class="empty">No sites found.</div>`;return;}
   items=sortItems(items);
+  const customSet=new Set(customCatKeys());
   list.innerHTML=items.map(site=>{
     let cls="site-item";
+    if(customSet.has(site.category))cls+=" other";
     if(site.category==="blocked")cls+=" blocked";
     if(site.category==="access")cls+=" access";
     if(site.category==="temperature")cls+=" temperature";
@@ -1259,7 +1404,11 @@ function renderSites(){
     if(site.category==="dg")cls+=" dg";
     if(site.category==="rot")cls+=" rot";
     if(site.section==="old")cls+=" old";
-    const relNote=!isRingDownCode(site.code)?getSiteRelationNote(site.code):"";
+    let relNote="";
+    if(isRingStatusCode(site.code)){
+      const rsp=parseRingStatusLine(site.originalLine);
+      if(rsp)relNote="Count: "+ringStatusCountInfo(rsp);
+    }else if(!isRingDownCode(site.code))relNote=getSiteRelationNote(site.code);
     return`<div class="${cls}">
       <div class="site-head">
         <div class="site-code">${escapeHtml(site.code)}</div>
@@ -1280,15 +1429,27 @@ function openEdit(id){
   editingId=id;
   document.getElementById("editTitle").textContent="Edit "+site.code;
   document.getElementById("editSection").value=site.section;
-  document.getElementById("editCategory").value=site.category;
+  const catSel=document.getElementById("editCategory");
+  const base=[["dg","DG Issues"],["power","Power Issues"],["temperature","Temperature Issues"],["thirdparty","3rd Party Issues"],["fiber","Fiber Issues"],["transmission","Transmission Issues"],["rot","ROT Issues"],["access","Access Issues"],["blocked","Blocked Sites"],["special","Temp Dismantling / Relocation / Renovation / Vandalism"]];
+  catSel.innerHTML=base.map(([v,l])=>`<option value="${v}">${l}</option>`).join("")+customCatKeys().map(k=>`<option value="${k}">${escapeHtml(state.customCats[k])}</option>`).join("")+`<option value="__other__">✏️ Other (name it yourself)...</option>`;
+  catSel.value=site.category;
+  if(![...catSel.options].some(o=>o.value===site.category))catSel.value="__other__";
+  const oth=document.getElementById("editOtherName");
+  oth.style.display=catSel.value==="__other__"?"block":"none";
+  oth.value="";
   document.getElementById("editLine").value=site.originalLine;
   document.getElementById("editModal").classList.add("active");
 }
 function closeModal(){document.getElementById("editModal").classList.remove("active");editingId=null;}
 function saveEdit(){
   const idx=state.sites.findIndex(s=>s.id===editingId);if(idx<0)return;
+  let cat=document.getElementById("editCategory").value;
+  if(cat==="__other__"){
+    cat=resolveOtherSelect("__other__","editOtherName");
+    if(!cat){notify("Enter a category name (e.g. Wafra).");return;}
+  }
   state.sites[idx].section=document.getElementById("editSection").value;
-  state.sites[idx].category=document.getElementById("editCategory").value;
+  state.sites[idx].category=cat;
   state.sites[idx].originalLine=document.getElementById("editLine").value;
   state.sites[idx].code=extractSiteCode(state.sites[idx].originalLine)||state.sites[idx].code;
   state.dirty=true;saveState();renderSites();closeModal();notify("Site updated.");
@@ -1321,7 +1482,57 @@ function clearAll(){
   document.getElementById("importResult").innerHTML="";document.getElementById("alarmResult").innerHTML="";
   renderSites();notify("All data cleared.");
 }
+// --- Custom category manager ---
+function openCatManager(){renderCatManager();document.getElementById("catModal").classList.add("active");}
+function closeCatManager(){document.getElementById("catModal").classList.remove("active");}
+function renderCatManager(){
+  const box=document.getElementById("catList");if(!box)return;
+  const keys=customCatKeys();
+  if(!keys.length){box.innerHTML=`<div class="empty">No custom categories yet.<br>Pick "✏️ Other" in New Alarms or in any site editor to create one.</div>`;return;}
+  box.innerHTML=keys.map(k=>{
+    const used=state.sites.filter(s=>s.category===k).length;
+    return`<div class="pending-item">
+      <div class="pending-head"><div class="pending-code">${escapeHtml(state.customCats[k])}</div><div class="badges"><span class="badge">${used} site(s)</span></div></div>
+      <div class="site-actions">
+        <button class="btn btn-secondary btn-sm" onclick="renameCustomCat('${k}')">✏️ Rename</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteCustomCat('${k}')">🗑️ Delete</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+function addCustomCat(){
+  const name=(prompt("New category name (e.g. Wafra):")||"").trim();if(!name)return;
+  ensureCustomCategory(name);
+  state.dirty=true;saveState();renderCatManager();renderSites();
+  notify(`Category "${name.trim()}" ready to use.`);
+}
+function renameCustomCat(k){
+  if(!state.customCats[k])return;
+  const name=(prompt("Rename category:",state.customCats[k])||"").trim();if(!name)return;
+  const newKey=customKeyFromLabel(name);
+  if(newKey!==k){
+    if(state.customCats[newKey]){notify("A category with that name already exists.");return;}
+    delete state.customCats[k];
+    state.sites.forEach(s=>{if(s.category===k)s.category=newKey;});
+  }
+  state.customCats[newKey]=name;
+  state.dirty=true;saveState();renderCatManager();renderSites();
+  notify("Category renamed.");
+}
+function deleteCustomCat(k){
+  if(!state.customCats[k])return;
+  const used=state.sites.filter(s=>s.category===k).length;
+  const label=state.customCats[k];
+  let msg=`Delete category "${label}"?`;
+  if(used>0)msg+=`\n${used} site(s) inside will be moved to Power Issues.`;
+  if(!confirm(msg))return;
+  delete state.customCats[k];
+  state.sites.forEach(s=>{if(s.category===k)s.category="power";});
+  state.dirty=true;saveState();renderCatManager();renderSites();
+  notify("Category deleted.");
+}
 document.getElementById("editModal").addEventListener("click",function(e){if(e.target===this)closeModal();});
+document.getElementById("catModal").addEventListener("click",function(e){if(e.target===this)closeCatManager();});
 </script>
     <footer class="footer">
         <p>
